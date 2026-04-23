@@ -223,12 +223,11 @@ views:
               show_states: true
               colorize_states: true
             graph_span: 12h
-            span:
-              start: day
             now:
               show: true
             series:
               - entity: sensor.inverter_total_power
+                transform: 'return x / 1000;' # convert KW to W
                 name: Solar
                 type: line
                 group_by:
@@ -262,12 +261,178 @@ views:
               - calendar.afvalinfo_thuis_calendar
               - calendar.kyokushin_karate
               - calendar.persoonlijk
-          - type: entities
-            entities:
-              - entity: sensor.afvalinfo_thuis_trash_type_today
-              - entity: sensor.afvalinfo_thuis_trash_type_tomorrow
-              - entity: sensor.afvalinfo_thuis_restafval_2
-              - entity: sensor.afvalinfo_thuis_papier_2
+          - type: custom:auto-entities
+            view_layout:
+              grid-area: issues
+            card:
+              type: grid
+              title: Issues
+              columns: 2
+              square: false
+            card_param: cards
+            filter:
+              include:
+                - entity_id: binary_sensor.*low_battery*
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:battery-alert
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+                - entity_id: binary_sensor.*replace_battery*
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:battery-alert-variant-outline
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+                - entity_id: binary_sensor.*tamper*
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:shield-alert
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+                - entity_id: binary_sensor.*over_load*
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:flash-alert
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+                - entity_id: binary_sensor.*over_current*
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:current-ac
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+                - entity_id: binary_sensor.*warnings
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:alert
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+              exclude: []
+            sort:
+              method: friendly_name
+            show_empty: false
+          
         view_layout:
           grid-column: 1 / 13
   
@@ -1154,4 +1319,153 @@ views:
     icon: mdi:heart-pulse
     type: custom:layout-card
     layout_type: custom:grid-layout
-    cards: []
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      - type: markdown
+        content: |
+          # Health & personal metrics
+          Steps, sleep, recovery and training readiness
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(var(--rgb-card-background-color), 0.72);
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              border-radius: 22px;
+              box-shadow: none;
+              padding: 4px 10px 0 10px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: entity
+            entity: sensor.total_steps
+            icon: mdi:shoe-print
+          - type: entity
+            entity: sensor.sleep_score
+            icon: mdi:sleep
+          - type: entity
+            entity: sensor.body_battery_most_recent
+            icon: mdi:battery-heart
+          - type: entity
+            entity: sensor.resting_heart_rate
+            icon: mdi:heart
+          - type: entity
+            entity: sensor.weight
+            icon: mdi:scale-bathroom
+          - type: entity
+            entity: sensor.garmin_connect_training_readiness
+            icon: mdi:run-fast
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: grid
+        columns: 4
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.sleep_score
+            name: Sleep score
+            min: 0
+            max: 100
+          - type: gauge
+            entity: sensor.body_battery_most_recent
+            name: Body battery
+            min: 0
+            max: 100
+          - type: gauge
+            entity: sensor.resting_heart_rate
+            name: Resting HR
+            min: 35
+            max: 100
+          - type: gauge
+            entity: sensor.average_spo2
+            name: Average SpO₂
+            min: 85
+            max: 100
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+              padding: 8px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Activity snapshot
+          show_states: true
+          colorize_states: true
+        graph_span: 7d
+        series:
+          - entity: sensor.total_steps
+            name: Steps
+            type: column
+            group_by:
+              func: max
+              duration: 1d
+          - entity: sensor.sleep_score
+            name: Sleep
+            type: line
+            group_by:
+              func: avg
+              duration: 1d
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 9
+      - type: entities
+        title: Key metrics
+        show_header_toggle: false
+        entities:
+          - sensor.total_steps
+          - sensor.garmin_connect_weekly_step_average
+          - sensor.total_distance_mtr
+          - sensor.active_time
+          - sensor.sleep_duration
+          - sensor.total_sleep_duration
+          - sensor.resting_heart_rate
+          - sensor.hrv_status
+          - sensor.garmin_connect_hrv_last_night_average
+          - sensor.average_spo2
+          - sensor.weight
+          - sensor.bmi
+          - sensor.body_fat
+          - sensor.garmin_connect_training_readiness
+          - sensor.garmin_connect_training_status
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 9 / 13
