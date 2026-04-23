@@ -1,4 +1,24 @@
 title: Dashboard
+decluttering_templates:
+  quick_button:
+    card:
+      type: custom:button-card
+      entity: '[[entity]]'
+      name: '[[name]]'
+      icon: '[[icon]]'
+      tap_action:
+        action: '[[action]]'
+      show_state: false
+      styles:
+        card:
+          - border-radius: 16px
+          - padding: 10px 12px
+          - height: 64px
+        icon:
+          - width: 20px
+        name:
+          - font-size: 13px
+          - font-weight: 600
 views:
   - title: Overview
     path: overview
@@ -256,11 +276,68 @@ views:
             view_layout:
               grid-column: 1 / 7
           
-          - type: custom:calendar-card-pro
-            entities:
-              - calendar.afvalinfo_thuis_calendar
-              - calendar.kyokushin_karate
-              - calendar.persoonlijk
+          - type: grid
+            title: Quick actions
+            view_layout:
+              grid-area: quick
+            columns: 2
+            square: false
+            cards:
+              - type: custom:decluttering-card
+                template: quick_button
+                variables:
+                  - entity: input_boolean.start_ha_morning
+                  - name: Morning
+                  - icon: mdi:weather-sunset-up
+                  - action: toggle
+              - type: custom:decluttering-card
+                template: quick_button
+                variables:
+                  - entity: input_boolean.start_ha_night_routine
+                  - name: Night
+                  - icon: mdi:weather-night
+                  - action: toggle
+              - type: custom:button-card
+                entity: vacuum.roombot
+                name: Start vacuum
+                icon: mdi:robot-vacuum
+                tap_action:
+                  action: call-service
+                  service: vacuum.start
+                  target:
+                    entity_id: vacuum.roombot
+                show_state: false
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 64px
+                  icon:
+                    - width: 20px
+                  name:
+                    - font-size: 13px
+                    - font-weight: 600
+              - type: custom:button-card
+                entity: input_button.run_speedtest
+                name: Run speedtest
+                icon: mdi:speedometer
+                tap_action:
+                  action: call-service
+                  service: input_button.press
+                  target:
+                    entity_id: input_button.run_speedtest
+                show_state: false
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 64px
+                  icon:
+                    - width: 20px
+                  name:
+                    - font-size: 13px
+                    - font-weight: 600
+          
           - type: custom:auto-entities
             view_layout:
               grid-area: issues
