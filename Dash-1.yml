@@ -1,0 +1,1394 @@
+title: Home Control
+decluttering_templates:
+  section_header:
+    card:
+      type: markdown
+      content: |
+        ## [[title]]
+  quick_button:
+    card:
+      type: custom:button-card
+      entity: '[[entity]]'
+      name: '[[name]]'
+      icon: '[[icon]]'
+      tap_action:
+        action: '[[action]]'
+      show_state: false
+      styles:
+        card:
+          - border-radius: 16px
+          - padding: 10px 12px
+          - height: 64px
+        icon:
+          - width: 20px
+        name:
+          - font-size: 13px
+          - font-weight: 600
+  status_tile:
+    card:
+      type: custom:button-card
+      entity: '[[entity]]'
+      name: '[[name]]'
+      icon: '[[icon]]'
+      show_state: true
+      tap_action:
+        action: more-info
+      styles:
+        card:
+          - border-radius: 16px
+          - padding: 10px 12px
+          - height: 68px
+          - border-width: 1px
+          - border-style: solid
+        grid:
+          - grid-template-areas: '"i n" "i s"'
+          - grid-template-columns: 30px 1fr
+          - grid-template-rows: min-content min-content
+        icon:
+          - width: 18px
+        name:
+          - justify-self: start
+          - font-size: 12px
+          - font-weight: 600
+        state:
+          - justify-self: start
+          - font-size: 10px
+          - opacity: 0.75
+      state:
+        - value: 'on'
+          styles:
+            card:
+              - border-color: rgba(220, 70, 70, 0.55)
+            icon:
+              - color: rgb(220, 70, 70)
+        - value: 'off'
+          styles:
+            card:
+              - border-color: rgba(70, 170, 100, 0.45)
+            icon:
+              - color: rgb(70, 170, 100)
+        - value: home
+          styles:
+            card:
+              - border-color: rgba(70, 170, 100, 0.45)
+            icon:
+              - color: rgb(70, 170, 100)
+        - value: not_home
+          styles:
+            card:
+              - border-color: rgba(220, 160, 60, 0.50)
+            icon:
+              - color: rgb(220, 160, 60)
+        - value: disarmed
+          styles:
+            card:
+              - border-color: rgba(70, 170, 100, 0.45)
+            icon:
+              - color: rgb(70, 170, 100)
+        - value: armed_home
+          styles:
+            card:
+              - border-color: rgba(220, 160, 60, 0.50)
+            icon:
+              - color: rgb(220, 160, 60)
+        - value: armed_away
+          styles:
+            card:
+              - border-color: rgba(220, 160, 60, 0.50)
+            icon:
+              - color: rgb(220, 160, 60)
+        - value: triggered
+          styles:
+            card:
+              - border-color: rgba(220, 70, 70, 0.70)
+            icon:
+              - color: rgb(220, 70, 70)
+        - value: unavailable
+          styles:
+            card:
+              - border-color: rgba(220, 70, 70, 0.70)
+            icon:
+              - color: rgb(220, 70, 70)
+  sensor_status_tile:
+    card:
+      type: custom:button-card
+      entity: '[[entity]]'
+      name: '[[name]]'
+      icon: '[[icon]]'
+      show_state: true
+      tap_action:
+        action: more-info
+      styles:
+        card:
+          - border-radius: 16px
+          - padding: 10px 12px
+          - height: 68px
+          - border-width: 1px
+          - border-style: solid
+        grid:
+          - grid-template-areas: '"i n" "i s"'
+          - grid-template-columns: 30px 1fr
+          - grid-template-rows: min-content min-content
+        icon:
+          - width: 18px
+        name:
+          - justify-self: start
+          - font-size: 12px
+          - font-weight: 600
+        state:
+          - justify-self: start
+          - font-size: 10px
+          - opacity: 0.75
+      state:
+        - value: up
+          styles:
+            card:
+              - border-color: rgba(70, 170, 100, 0.45)
+            icon:
+              - color: rgb(70, 170, 100)
+        - value: online
+          styles:
+            card:
+              - border-color: rgba(70, 170, 100, 0.45)
+            icon:
+              - color: rgb(70, 170, 100)
+        - value: ok
+          styles:
+            card:
+              - border-color: rgba(70, 170, 100, 0.45)
+            icon:
+              - color: rgb(70, 170, 100)
+        - value: warning
+          styles:
+            card:
+              - border-color: rgba(220, 160, 60, 0.50)
+            icon:
+              - color: rgb(220, 160, 60)
+        - value: degraded
+          styles:
+            card:
+              - border-color: rgba(220, 160, 60, 0.50)
+            icon:
+              - color: rgb(220, 160, 60)
+        - value: down
+          styles:
+            card:
+              - border-color: rgba(220, 70, 70, 0.70)
+            icon:
+              - color: rgb(220, 70, 70)
+        - value: offline
+          styles:
+            card:
+              - border-color: rgba(220, 70, 70, 0.70)
+            icon:
+              - color: rgb(220, 70, 70)
+        - value: unavailable
+          styles:
+            card:
+              - border-color: rgba(220, 70, 70, 0.70)
+            icon:
+              - color: rgb(220, 70, 70)
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:view-dashboard
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: 1fr 1fr 1fr
+      grid-template-areas: |
+        "header header header"
+        "presence helpers quick"
+        "status status status"
+        "entry lights lights"
+        "issues updates weather"
+        "vacuum waste waste"
+      mediaquery:
+        '(max-width: 1200px)':
+          grid-template-columns: 1fr 1fr
+          grid-template-areas: |
+            "header header"
+            "presence helpers"
+            "quick quick"
+            "status status"
+            "entry lights"
+            "issues updates"
+            "weather waste"
+            "vacuum vacuum"
+        '(max-width: 800px)':
+          grid-template-columns: 1fr
+          grid-template-areas: |
+            "header"
+            "presence"
+            "helpers"
+            "quick"
+            "status"
+            "entry"
+            "lights"
+            "issues"
+            "updates"
+            "weather"
+            "vacuum"
+            "waste"
+    cards:
+      - type: custom:stack-in-card
+        view_layout:
+          grid-area: header
+        cards:
+          - type: custom:decluttering-card
+            template: section_header
+            variables:
+              - title: Home Overview
+          - type: grid
+            columns: 4
+            square: false
+            cards:
+              - type: custom:mushroom-person-card
+                entity: person.eduward_post
+                name: Eduward
+                icon_type: entity-picture
+                layout: horizontal
+              - type: custom:mushroom-person-card
+                entity: person.regina_post
+                name: Regina
+                icon_type: entity-picture
+                layout: horizontal
+              - type: custom:mushroom-person-card
+                entity: person.albert_post
+                name: Albert
+                icon_type: entity-picture
+                layout: horizontal
+              - type: custom:mushroom-person-card
+                entity: person.johanna_post
+                name: Johanna
+                icon_type: entity-picture
+                layout: horizontal
+      - type: entities
+        title: Presence
+        view_layout:
+          grid-area: presence
+        entities:
+          - group.persons
+          - sensor.iphone_geocoded_location
+          - sensor.macbook_pro_geocoded_location
+          - binary_sensor.remote_ui
+      - type: entities
+        title: Home states
+        view_layout:
+          grid-area: helpers
+        entities:
+          - input_select.light_scene
+          - input_boolean.guest_mode
+          - input_boolean.vacation_mode
+          - input_boolean.slaap_modus
+          - input_boolean.current_light_state
+          - input_boolean.buiten_current_light_state
+      - type: grid
+        title: Quick actions
+        view_layout:
+          grid-area: quick
+        columns: 2
+        square: false
+        cards:
+          - type: custom:decluttering-card
+            template: quick_button
+            variables:
+              - entity: input_boolean.start_ha_morning
+              - name: Morning
+              - icon: mdi:weather-sunset-up
+              - action: toggle
+          - type: custom:decluttering-card
+            template: quick_button
+            variables:
+              - entity: input_boolean.start_ha_night_routine
+              - name: Night
+              - icon: mdi:weather-night
+              - action: toggle
+          - type: custom:button-card
+            entity: vacuum.roombot
+            name: Start vacuum
+            icon: mdi:robot-vacuum
+            tap_action:
+              action: call-service
+              service: vacuum.start
+              target:
+                entity_id: vacuum.roombot
+            show_state: false
+            styles:
+              card:
+                - border-radius: 16px
+                - padding: 10px 12px
+                - height: 64px
+              icon:
+                - width: 20px
+              name:
+                - font-size: 13px
+                - font-weight: 600
+          - type: custom:button-card
+            entity: input_button.run_speedtest
+            name: Run speedtest
+            icon: mdi:speedometer
+            tap_action:
+              action: call-service
+              service: input_button.press
+              target:
+                entity_id: input_button.run_speedtest
+            show_state: false
+            styles:
+              card:
+                - border-radius: 16px
+                - padding: 10px 12px
+                - height: 64px
+              icon:
+                - width: 20px
+              name:
+                - font-size: 13px
+                - font-weight: 600
+      - type: grid
+        title: Status
+        view_layout:
+          grid-area: status
+        columns: 8
+        square: false
+        cards:
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: alarm_control_panel.alarm
+              - name: Alarm
+              - icon: mdi:shield-home
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: binary_sensor.frontdoor_open
+              - name: Front door
+              - icon: mdi:door
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: binary_sensor.remote_ui
+              - name: Remote UI
+              - icon: mdi:cloud-check
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: binary_sensor.sabnzb_warnings
+              - name: SAB warnings
+              - icon: mdi:download
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: input_boolean.guest_mode
+              - name: Guest
+              - icon: mdi:account-group
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: input_boolean.vacation_mode
+              - name: Vacation
+              - icon: mdi:palm-tree
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: input_boolean.slaap_modus
+              - name: Sleep
+              - icon: mdi:sleep
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: vacuum.roombot
+              - name: Roombot
+              - icon: mdi:robot-vacuum
+      - type: custom:stack-in-card
+        view_layout:
+          grid-area: entry
+        cards:
+          - type: entities
+            title: Entry
+            entities:
+              - binary_sensor.frontdoor_open
+              - binary_sensor.front_door_motion
+              - binary_sensor.front_door_ding
+              - sensor.front_door_last_ding
+              - sensor.front_door_last_motion
+              - sensor.front_door_battery
+              - switch.front_door_motion_detection
+              - switch.front_door_in_home_chime
+          - type: picture-glance
+            title: Front door
+            camera_image: camera.front_door_live_view
+            entities:
+              - binary_sensor.front_door_motion
+              - binary_sensor.front_door_ding
+      - type: custom:stack-in-card
+        view_layout:
+          grid-area: lights
+        cards:
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:mushroom-light-card
+                entity: light.downstairs
+                name: Downstairs
+                show_brightness_control: true
+                collapsible_controls: true
+              - type: custom:mushroom-light-card
+                entity: light.living_room_lights
+                name: Living room
+                show_brightness_control: true
+                collapsible_controls: true
+              - type: custom:mushroom-light-card
+                entity: light.kitchen_lights
+                name: Kitchen
+                show_brightness_control: true
+                collapsible_controls: true
+              - type: custom:mushroom-light-card
+                entity: light.eetkamer
+                name: Dining
+                show_brightness_control: true
+                collapsible_controls: true
+              - type: custom:mushroom-light-card
+                entity: light.hal
+                name: Hall
+                show_brightness_control: true
+                collapsible_controls: true
+              - type: custom:mushroom-light-card
+                entity: light.kantoor
+                name: Office
+                show_brightness_control: true
+                collapsible_controls: true
+              - type: custom:mushroom-light-card
+                entity: light.buiten_lampen_oprit
+                name: Driveway
+              - type: custom:mushroom-light-card
+                entity: light.buiten_lampen_garage
+                name: Garage outside
+              - type: custom:mushroom-light-card
+                entity: light.buiten_stekker
+                name: Outside plug
+          - type: entities
+            entities:
+              - input_number.illuminance_lower_level
+              - input_number.illuminance_upper_level
+              - input_number.buiten_illuminance_lower_level
+              - input_number.buiten_illuminance_upper_level
+      - type: custom:auto-entities
+        view_layout:
+          grid-area: issues
+        card:
+          type: grid
+          title: Issues
+          columns: 2
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - entity_id: binary_sensor.*low_battery*
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:battery-alert
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 70px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+            - entity_id: binary_sensor.*replace_battery*
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:battery-alert-variant-outline
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 70px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+            - entity_id: binary_sensor.*tamper*
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:shield-alert
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 70px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+            - entity_id: binary_sensor.*over_load*
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:flash-alert
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 70px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+            - entity_id: binary_sensor.*over_current*
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:current-ac
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 70px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+            - entity_id: binary_sensor.*warnings
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:alert
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 70px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+          exclude: []
+        sort:
+          method: friendly_name
+        show_empty: false
+      - type: custom:auto-entities
+        view_layout:
+          grid-area: updates
+        card:
+          type: grid
+          title: Updates
+          columns: 2
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - domain: update
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:update
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 70px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 160, 60, 0.55)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 160, 60)
+          exclude: []
+        sort:
+          method: friendly_name
+        show_empty: false
+      - type: weather-forecast
+        view_layout:
+          grid-area: weather
+        entity: weather.forecast_home
+      - type: custom:stack-in-card
+        view_layout:
+          grid-area: vacuum
+        cards:
+          - type: custom:mushroom-vacuum-card
+            entity: vacuum.roombot
+            name: Roombot
+            commands:
+              - start_pause
+              - stop
+              - return_home
+          - type: entities
+            entities:
+              - sensor.roombot_battery_level
+              - sensor.roombot_tank_level
+              - binary_sensor.roombot_bin_full
+      - type: entities
+        title: Waste
+        view_layout:
+          grid-area: waste
+        entities:
+          - sensor.afvalinfo_thuis_afval_voor_vandaag
+          - sensor.afvalinfo_thuis_afval_voor_morgen
+          - sensor.afvalinfo_thuis_trash_type_today
+          - sensor.afvalinfo_thuis_trash_type_tomorrow
+          - calendar.afvalinfo_thuis_calendar
+  - title: Energy
+    path: energy
+    icon: mdi:flash
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: 1fr 1fr
+      grid-template-areas: |
+        "flow flow"
+        "live totals"
+        "solar carbon"
+        "consumers consumers"
+      mediaquery:
+        '(max-width: 800px)':
+          grid-template-columns: 1fr
+          grid-template-areas: |
+            "flow"
+            "live"
+            "totals"
+            "solar"
+            "carbon"
+            "consumers"
+    cards:
+      - type: custom:power-flow-card-plus
+        view_layout:
+          grid-area: flow
+        entities:
+          battery:
+            color_icon: true
+            color_circle: true
+            state_of_charge: sensor.ups_battery_charge
+            invert_state: false
+            use_metadata: false
+          grid:
+            entity:
+              consumption: sensor.dsmr_reading_electricity_currently_delivered
+              production: sensor.dsmr_reading_electricity_currently_returned
+            color_circle: true
+            display_state: two_way
+            color_value: true
+            color_icon: true
+          fossil_fuel_percentage:
+            entity: sensor.co2_signal_grid_fossil_fuel_percentage
+            color_value: false
+            color_icon: true
+            state_type: percentage
+          home:
+            color_icon: true
+          individual:
+            - entity: sensor.zolder_power_switch_power_2
+              name: Servers
+              color_icon: true
+              icon: mdi:server
+              calculate_flow_rate: true
+              color_value: false
+              color:
+                - 255
+                - 38
+                - 0
+            - entity: sensor.meterkast_power_switch_electric_consumption_w_2
+              name: Network
+              icon: mdi:access-point-network
+              color_icon: true
+            - entity: sensor.kantoor_power_switch_electric_consumption_w
+              name: Office
+              icon: mdi:office-building
+              color:
+                - 94
+                - 48
+                - 235
+          solar:
+            entity: sensor.inverter_total_power
+            color_icon: true
+        clickable_entities: true
+        display_zero_lines:
+          mode: show
+          transparency: 50
+          grey_color:
+            - 189
+            - 189
+            - 189
+        use_new_flow_rate_model: true
+        w_decimals: 0
+        kw_decimals: 1
+        min_flow_rate: 0.75
+        max_flow_rate: 6
+        max_expected_power: 2000
+        min_expected_power: 0.01
+        watt_threshold: 1000
+        transparency_zero_lines: 0
+        dashboard_link: /energy
+        title: Current energy distribution
+        theme: Backend-selected
+      - type: entities
+        title: Live
+        view_layout:
+          grid-area: live
+        entities:
+          - sensor.dsmr_reading_electricity_currently_delivered
+          - sensor.dsmr_reading_electricity_currently_returned
+          - sensor.dsmr_consumption_gas_currently_delivered
+          - sensor.inverter_total_power
+          - sensor.inverter_total_energy
+      - type: entities
+        title: Totals
+        view_layout:
+          grid-area: totals
+        entities:
+          - sensor.dsmr_electricity_totally_delivered
+          - sensor.dsmr_electricity_totally_returned
+          - sensor.dsmr_gas_used
+          - sensor.dsmr_day_consumption_total_cost
+          - sensor.dsmr_current_month_total_cost
+          - sensor.dsmr_current_year_total_cost
+      - type: custom:apexcharts-card
+        view_layout:
+          grid-area: solar
+        header:
+          title: Solar production (24h)
+          show: true
+        graph_span: 24h
+        series:
+          - entity: sensor.inverter_total_power
+            name: Solar
+            type: area
+            stroke_width: 2
+      - type: custom:apexcharts-card
+        view_layout:
+          grid-area: carbon
+        header:
+          title: Carbon intensity (24h)
+          show: true
+        graph_span: 24h
+        series:
+          - entity: sensor.co2_signal_co2_intensity
+            name: CO2 intensity
+            type: line
+          - entity: sensor.co2_signal_grid_fossil_fuel_percentage
+            name: Fossil %
+            type: line
+      - type: custom:apexcharts-card
+        view_layout:
+          grid-area: consumers
+        header:
+          title: Key consumers (24h)
+          show: true
+        graph_span: 24h
+        series:
+          - entity: sensor.zolder_power_switch_power_2
+            name: Servers
+            type: area
+          - entity: sensor.meterkast_power_switch_electric_consumption_w_2
+            name: Network
+            type: line
+          - entity: sensor.kantoor_power_switch_electric_consumption_w
+            name: Office
+            type: line
+  - title: Security
+    path: security
+    icon: mdi:shield-home
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: 1fr 1fr 1fr
+      grid-template-areas: |
+        "alarm wazuh wazuh"
+        "front backyard driveway"
+        "services certs certs"
+      mediaquery:
+        '(max-width: 1000px)':
+          grid-template-columns: 1fr 1fr
+          grid-template-areas: |
+            "alarm wazuh"
+            "front backyard"
+            "driveway services"
+            "certs certs"
+        '(max-width: 800px)':
+          grid-template-columns: 1fr
+          grid-template-areas: |
+            "alarm"
+            "wazuh"
+            "front"
+            "backyard"
+            "driveway"
+            "services"
+            "certs"
+    cards:
+      - type: entities
+        title: Alarm
+        view_layout:
+          grid-area: alarm
+        entities:
+          - alarm_control_panel.alarm
+          - alarm_control_panel.beneden
+          - alarm_control_panel.boven
+          - sensor.siem_security_score
+          - binary_sensor.frontdoor_open
+          - binary_sensor.front_door_motion
+          - binary_sensor.front_door_ding
+      - type: entities
+        title: Wazuh
+        view_layout:
+          grid-area: wazuh
+        entities:
+          - sensor.wazuh_critical_24h
+          - sensor.wazuh_high_24h
+          - sensor.wazuh_medium_24h
+          - sensor.wazuh_low_24h
+          - sensor.wazuh_top_rule_24h
+          - sensor.wazuh_top_wan_local_source_ip_24h
+          - sensor.wazuh_top_wan_local_dpt_24h
+          - sensor.wazuh_wan_local_drops_24h
+          - sensor.wazuh_security_last_5
+          - sensor.wazuh_ops_last_5
+      - type: picture-glance
+        title: Front door
+        view_layout:
+          grid-area: front
+        camera_image: camera.front_door_live_view
+        entities:
+          - binary_sensor.front_door_motion
+          - binary_sensor.front_door_ding
+      - type: picture-glance
+        title: Backyard
+        view_layout:
+          grid-area: backyard
+        camera_image: camera.achtertuin_achtertuin
+        entities:
+          - binary_sensor.back_yard_motion_sensor_motion_detection
+      - type: picture-glance
+        title: Driveway
+        view_layout:
+          grid-area: driveway
+        camera_image: camera.oprit_oprit
+        entities:
+          - binary_sensor.g3_flex_motion
+          - binary_sensor.g3_flex_is_dark
+          - switch.g3_flex_privacy_mode
+      - type: grid
+        title: Core services
+        view_layout:
+          grid-area: services
+        columns: 3
+        square: false
+        cards:
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.home_assistant_status
+              - name: Home Assistant
+              - icon: mdi:home-assistant
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.unifi_controller_status
+              - name: UniFi
+              - icon: mdi:wifi
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.mariadb_status
+              - name: MariaDB
+              - icon: mdi:database
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.internet_access_status
+              - name: Internet
+              - icon: mdi:web
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.haproxy_status
+              - name: HAProxy
+              - icon: mdi:router-network
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.ad_guard_status
+              - name: AdGuard
+              - icon: mdi:shield-check
+      - type: custom:auto-entities
+        view_layout:
+          grid-area: certs
+        card:
+          type: entities
+          title: Certificate sensors
+        filter:
+          include:
+            - entity_id: sensor.*certificate_expiry
+          exclude: []
+        sort:
+          method: friendly_name
+        show_empty: true
+  - title: Media
+    path: media
+    icon: mdi:multimedia
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: 1fr 1fr 1fr
+      grid-template-areas: |
+        "tv speakers speakers"
+        "vacuum weather waste"
+        "health health printer"
+      mediaquery:
+        '(max-width: 1000px)':
+          grid-template-columns: 1fr 1fr
+          grid-template-areas: |
+            "tv speakers"
+            "vacuum weather"
+            "waste printer"
+            "health health"
+        '(max-width: 800px)':
+          grid-template-columns: 1fr
+          grid-template-areas: |
+            "tv"
+            "speakers"
+            "vacuum"
+            "weather"
+            "waste"
+            "health"
+            "printer"
+    cards:
+      - type: entities
+        title: TVs
+        view_layout:
+          grid-area: tv
+        entities:
+          - media_player.tv_samsung_7_series_55
+          - media_player.samsung_au7040_50_tv
+          - media_player.bedroom_tv
+          - remote.samsung_7_series_55
+          - remote.samsung_au7040_50_tv
+          - remote.bedroom_tv
+      - type: entities
+        title: Speakers
+        view_layout:
+          grid-area: speakers
+        entities:
+          - media_player.keuken_speaker
+          - media_player.office_speaker
+          - media_player.bedroom
+          - media_player.spotify_1119467372
+          - number.kitchen_bass
+          - number.kitchen_treble
+          - number.bedroom_bass
+          - number.bedroom_treble
+      - type: custom:mushroom-vacuum-card
+        view_layout:
+          grid-area: vacuum
+        entity: vacuum.roombot
+        name: Roombot
+        commands:
+          - start_pause
+          - stop
+          - return_home
+      - type: weather-forecast
+        view_layout:
+          grid-area: weather
+        entity: weather.forecast_home
+      - type: entities
+        view_layout:
+          grid-area: waste
+        title: Waste
+        entities:
+          - sensor.afvalinfo_thuis_afval_voor_vandaag
+          - sensor.afvalinfo_thuis_afval_voor_morgen
+          - sensor.afvalinfo_thuis_restafval
+          - sensor.afvalinfo_thuis_papier
+          - sensor.afvalinfo_thuis_groente_fruit_en_tuinafval
+      - type: custom:stack-in-card
+        view_layout:
+          grid-area: health
+        cards:
+          - type: entities
+            title: Health
+            entities:
+              - sensor.total_steps
+              - sensor.daily_step_goal
+              - sensor.resting_heart_rate
+              - sensor.sleep_score
+              - sensor.body_battery_most_recent
+              - sensor.garmin_connect_training_readiness
+              - sensor.weight
+              - sensor.bmi
+          - type: custom:apexcharts-card
+            header:
+              title: Steps (24h)
+              show: true
+            graph_span: 24h
+            series:
+              - entity: sensor.total_steps
+                name: Steps
+      - type: entities
+        view_layout:
+          grid-area: printer
+        title: Printer
+        entities:
+          - sensor.mfc_j6530dw_status
+          - sensor.brother_mfc_j6530dw_black_ink_remaining
+          - sensor.brother_mfc_j6530dw_cyan_ink_remaining
+          - sensor.brother_mfc_j6530dw_magenta_ink_remaining
+          - sensor.brother_mfc_j6530dw_yellow_ink_remaining
+  - title: Admin
+    path: admin
+    icon: mdi:server
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: 1fr 1fr 1fr
+      grid-template-areas: |
+        "updates backup zigbee"
+        "synology network containers"
+        "printer3d external lowbatt"
+      mediaquery:
+        '(max-width: 1000px)':
+          grid-template-columns: 1fr 1fr
+          grid-template-areas: |
+            "updates backup"
+            "zigbee synology"
+            "network containers"
+            "printer3d external"
+            "lowbatt lowbatt"
+        '(max-width: 800px)':
+          grid-template-columns: 1fr
+          grid-template-areas: |
+            "updates"
+            "backup"
+            "zigbee"
+            "synology"
+            "network"
+            "containers"
+            "printer3d"
+            "external"
+            "lowbatt"
+    cards:
+      - type: custom:auto-entities
+        view_layout:
+          grid-area: updates
+        card:
+          type: grid
+          title: Pending updates
+          columns: 2
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - domain: update
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:update
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 70px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 160, 60, 0.55)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 160, 60)
+          exclude: []
+        sort:
+          method: friendly_name
+        show_empty: false
+      - type: entities
+        title: Backup
+        view_layout:
+          grid-area: backup
+        entities:
+          - sensor.backup_backup_manager_state
+          - sensor.backup_next_scheduled_automatic_backup
+          - sensor.backup_last_successful_automatic_backup
+          - sensor.backup_last_attempted_automatic_backup
+          - event.backup_automatic_backup
+      - type: entities
+        title: Zigbee / Z-Wave
+        view_layout:
+          grid-area: zigbee
+        entities:
+          - binary_sensor.zigbee2mqtt_bridge_connection_state
+          - sensor.zigbee2mqtt_bridge_version
+          - sensor.zigbee2mqtt_bridge_coordinator_version
+          - switch.zigbee2mqtt_bridge_permit_join
+          - button.zigbee2mqtt_bridge_restart
+          - sensor.z_stick_gen5_usb_controller_status
+          - update.z_stick_gen5_usb_controller_firmware
+          - binary_sensor.slzb_mr1_internet
+          - sensor.slzb_mr1_connection_mode
+          - sensor.slzb_mr1_core_chip_temp
+          - sensor.slzb_mr1_zigbee_chip_temp
+          - button.slzb_mr1_core_restart
+          - button.slzb_mr1_zigbee_restart
+      - type: grid
+        title: Synology
+        view_layout:
+          grid-area: synology
+        columns: 2
+        square: false
+        cards:
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: binary_sensor.synology_nas_security_status
+              - name: Security
+              - icon: mdi:nas
+          - type: custom:button-card
+            entity: update.synology_nas_dsm_update
+            icon: mdi:update
+            show_name: true
+            show_state: true
+            tap_action:
+              action: more-info
+            styles:
+              card:
+                - border-radius: 16px
+                - padding: 10px 12px
+                - height: 70px
+                - border-width: 1px
+                - border-style: solid
+                - border-color: rgba(220, 160, 60, 0.55)
+              name:
+                - font-size: 12px
+                - font-weight: 600
+              state:
+                - font-size: 10px
+                - opacity: 0.75
+              icon:
+                - color: rgb(220, 160, 60)
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: sensor.synology_nas_volume_1_status
+              - name: Volume 1
+              - icon: mdi:harddisk
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: sensor.synology_nas_disk_1_status
+              - name: Disk 1
+              - icon: mdi:harddisk
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: sensor.synology_nas_disk_2_status
+              - name: Disk 2
+              - icon: mdi:harddisk
+          - type: custom:decluttering-card
+            template: status_tile
+            variables:
+              - entity: sensor.synology_nas_disk_3_status
+              - name: Disk 3
+              - icon: mdi:harddisk
+      - type: grid
+        title: Network gear
+        view_layout:
+          grid-area: network
+        columns: 3
+        square: false
+        cards:
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.garage_state
+              - name: Garage
+              - icon: mdi:switch
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.zolder_state
+              - name: Zolder
+              - icon: mdi:switch
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.beneden_state
+              - name: Beneden
+              - icon: mdi:switch
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.boven_state
+              - name: Boven
+              - icon: mdi:switch
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.us_24_poe_250w_state
+              - name: Core switch
+              - icon: mdi:network
+          - type: custom:decluttering-card
+            template: sensor_status_tile
+            variables:
+              - entity: sensor.usw_flex_2_5g_5_state
+              - name: Flex 2.5G
+              - icon: mdi:ethernet-switch
+      - type: custom:auto-entities
+        view_layout:
+          grid-area: containers
+        card:
+          type: entities
+          title: Problem containers/services
+        filter:
+          include:
+            - entity_id: binary_sensor.*_status
+              state: 'off'
+            - entity_id: sensor.*_status
+              state: down
+            - entity_id: sensor.*_status
+              state: offline
+          exclude: []
+        show_empty: false
+      - type: custom:stack-in-card
+        view_layout:
+          grid-area: printer3d
+        cards:
+          - type: picture-glance
+            camera_image: camera.octoprint_camera
+            entities:
+              - binary_sensor.octoprint_printing
+              - sensor.octoprint_job_percentage
+          - type: entities
+            entities:
+              - sensor.octoprint_current_state
+              - sensor.octoprint_job_percentage
+              - sensor.octoprint_estimated_finish_time
+              - sensor.octoprint_actual_bed_temp
+              - sensor.octoprint_actual_tool0_temp
+              - button.octoprint_pause_job
+              - button.octoprint_resume_job
+              - button.octoprint_stop_job
+      - type: custom:auto-entities
+        view_layout:
+          grid-area: external
+        card:
+          type: entities
+          title: External services down
+        filter:
+          include:
+            - entity_id: sensor.*_status
+              state: down
+            - entity_id: sensor.*_status
+              state: offline
+          exclude:
+            - entity_id: sensor.home_assistant_status
+            - entity_id: sensor.mariadb_status
+            - entity_id: sensor.haproxy_status
+        show_empty: false
+      - type: custom:auto-entities
+        view_layout:
+          grid-area: lowbatt
+        card:
+          type: entities
+          title: Low battery devices
+        filter:
+          include:
+            - entity_id: binary_sensor.*low_battery*
+              state: 'on'
+            - entity_id: binary_sensor.*replace_battery*
+              state: 'on'
+          exclude: []
+        sort:
+          method: friendly_name
+        show_empty: false

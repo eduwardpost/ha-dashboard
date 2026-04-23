@@ -1,0 +1,1157 @@
+title: Dashboard
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:view-dashboard
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      - type: custom:mushroom-chips-card
+        alignment: center
+        chips:
+          - icon: mdi:home
+            type: template
+            content: >
+              {% if is_state('group.persons', 'home') %}Home{% else %}Away{%
+              endif %}
+            icon_color: >
+              {% if is_state('group.persons', 'home') %}green{% else %}amber{%
+              endif %}
+            tap_action:
+              action: more-info
+              entity: group.persons
+          - icon: mdi:shield-home
+            type: template
+            tap_action:
+              entity: alarm_control_panel.alarm
+              action: more-info
+            content: |
+              {% if is_state('alarm_control_panel.alarm', 'armed_away')
+                    or is_state('alarm_control_panel.alarm', 'armed_home')
+                    or is_state('alarm_control_panel.alarm', 'armed_night') %}
+                Armed
+              {% else %}
+                Disarmed
+              {% endif %}
+            icon_color: |
+              {% if is_state('alarm_control_panel.alarm', 'armed_away')
+                    or is_state('alarm_control_panel.alarm', 'armed_home')
+                    or is_state('alarm_control_panel.alarm', 'armed_night') %}
+                green
+              {% else %}
+                red
+              {% endif %}
+          - icon: mdi:solar-power
+            type: template
+            content: '{{ states(''sensor.inverter_total_power'') }} W'
+            icon_color: yellow
+          - icon: mdi:download-network
+            type: template
+            content: >
+              {{ states('sensor.speedtest_download')|round(0) }} / {{
+              states('sensor.speedtest_upload')|round(0) }}
+            icon_color: blue
+          - icon: mdi:update
+            type: template
+            content: |
+              {% set updates = [
+                states('update.home_assistant_core_update'),
+                states('update.home_assistant_operating_system_update'),
+                states('update.home_assistant_supervisor_update'),
+                states('update.hacs_update'),
+                states('update.mikrotik_router_update'),
+                states('update.proxmox_ve_update'),
+                states('update.synology_dsm_update'),
+                states('update.synology_nas_dsm_update'),
+                states('update.zigbee2mqtt_update'),
+                states('update.esphome_update'),
+                states('update.z_wave_js_ui_update'),
+                states('update.studio_code_server_update')
+              ] %} {{ updates | select('eq', 'on') | list | count }} updates
+            icon_color: >
+              {% set updates = [
+                states('update.home_assistant_core_update'),
+                states('update.home_assistant_operating_system_update'),
+                states('update.home_assistant_supervisor_update'),
+                states('update.hacs_update'),
+                states('update.mikrotik_router_update'),
+                states('update.proxmox_ve_update'),
+                states('update.synology_dsm_update'),
+                states('update.synology_nas_dsm_update'),
+                states('update.zigbee2mqtt_update'),
+                states('update.esphome_update'),
+                states('update.z_wave_js_ui_update'),
+                states('update.studio_code_server_update')
+              ] %} {% if (updates | select('eq', 'on') | list | count) > 0
+              %}amber{% else %}green{% endif %}
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: custom:button-card
+            entity: alarm_control_panel.alarm # TODO: set to more generic "home security status" sensor that combines alarm state, surveillance station home mode and NAS security status
+            name: Security
+            icon: mdi:shield-home
+            show_state: true
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/security
+            styles:
+              card:
+                - border-radius: 22px
+                - padding: 18px 12px
+                - border: 1px solid rgba(180, 190, 254, 0.18)
+              icon:
+                - width: 34px
+              name:
+                - font-size: 17px
+                - font-weight: 600
+              state:
+                - font-size: 14px
+            state:
+              - value: disarmed
+                color: rgb(243, 139, 168)
+              - value: armed_home
+                color: rgb(166, 227, 161)
+              - value: armed_away
+                color: rgb(137, 180, 250)
+              - value: armed_night
+                color: rgb(203, 166, 247)
+          - type: custom:button-card
+            entity: sensor.dsmr_reading_electricity_currently_delivered
+            name: Power
+            icon: mdi:flash
+            show_state: true
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/energy
+            state_display: >
+              [[[ return `Import
+              ${states['sensor.dsmr_reading_electricity_currently_delivered']?.state
+              ?? '-'} KW | Export
+              ${states['sensor.dsmr_reading_electricity_currently_returned']?.state
+              ?? '-'} KW`; ]]]
+            styles:
+              card:
+                - border-radius: 22px
+                - padding: 18px 12px
+                - border: 1px solid rgba(180, 190, 254, 0.18)
+              icon:
+                - width: 34px
+              name:
+                - font-size: 17px
+                - font-weight: 600
+              state:
+                - font-size: 14px
+            color: rgb(137, 180, 250)
+          - type: custom:button-card
+            entity: binary_sensor.prometheus_status # TODO: change to more generic "homelab health" sensor
+            name: Homelab
+            icon: mdi:chart-line
+            show_state: true
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/homelab
+            styles:
+              card:
+                - border-radius: 22px
+                - padding: 18px 12px
+                - border: 1px solid rgba(180, 190, 254, 0.18)
+              icon:
+                - width: 34px
+              name:
+                - font-size: 17px
+                - font-weight: 600
+              state:
+                - font-size: 14px
+            state:
+              - value: 'on'
+                color: rgb(166, 227, 161)
+              - value: 'off'
+                color: rgb(243, 139, 168)
+        view_layout:
+          grid-column: 1 / 13
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - show_current: true
+            show_forecast: true
+            type: weather-forecast
+            entity: weather.forecast_home
+            forecast_type: daily
+          - type: custom:calendar-card-pro
+            entities:
+              - calendar.afvalinfo_thuis_calendar
+              - calendar.kyokushin_karate
+              - calendar.persoonlijk
+          - type: entities
+            entities:
+              - entity: sensor.afvalinfo_thuis_trash_type_today
+              - entity: sensor.afvalinfo_thuis_trash_type_tomorrow
+              - entity: sensor.afvalinfo_thuis_restafval_2
+              - entity: sensor.afvalinfo_thuis_papier_2
+        view_layout:
+          grid-column: 1 / 13
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: custom:apexcharts-card
+            header:
+              show: true
+              title: Live power trend
+              show_states: true
+              colorize_states: true
+            graph_span: 12h
+            span:
+              start: day
+            now:
+              show: true
+            series:
+              - entity: sensor.inverter_total_power
+                name: Solar
+                type: line
+                group_by:
+                  func: avg
+                  duration: 5min
+              - entity: sensor.dsmr_reading_electricity_currently_delivered
+                name: Import
+                type: line
+                group_by:
+                  func: avg
+                  duration: 5min
+              - entity: sensor.dsmr_reading_electricity_currently_returned
+                name: Export
+                type: line
+                group_by:
+                  func: avg
+                  duration: 5min
+            card_mod:
+              style: |
+                ha-card {
+                  border-radius: 22px;
+                  border: 1px solid rgba(180, 190, 254, 0.18);
+                  background: rgba(30, 30, 46, 0.72);
+                  box-shadow: none;
+                }
+            view_layout:
+              grid-column: 1 / 7
+          
+          - type: custom:calendar-card-pro
+            entities:
+              - calendar.afvalinfo_thuis_calendar
+              - calendar.kyokushin_karate
+              - calendar.persoonlijk
+          - type: entities
+            entities:
+              - entity: sensor.afvalinfo_thuis_trash_type_today
+              - entity: sensor.afvalinfo_thuis_trash_type_tomorrow
+              - entity: sensor.afvalinfo_thuis_restafval_2
+              - entity: sensor.afvalinfo_thuis_papier_2
+        view_layout:
+          grid-column: 1 / 13
+  
+  - title: Home
+    path: home
+    icon: mdi:sofa
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    cards: []
+  - title: Energy
+    path: energy
+    icon: mdi:lightning-bolt
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      - type: markdown
+        content: |
+          # Power & energy
+          Production, import/export, gas and major consumers
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(var(--rgb-card-background-color), 0.72);
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              border-radius: 22px;
+              box-shadow: none;
+              padding: 4px 10px 0 10px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: entity
+            entity: sensor.inverter_total_power
+            icon: mdi:solar-power
+          - type: entity
+            entity: sensor.dsmr_reading_electricity_currently_delivered
+            icon: mdi:transmission-tower-import
+          - type: entity
+            entity: sensor.dsmr_reading_electricity_currently_returned
+            icon: mdi:transmission-tower-export
+          - type: entity
+            entity: sensor.dsmr_consumption_gas_currently_delivered
+            icon: mdi:fire
+          - type: entity
+            entity: sensor.dsmr_day_consumption_total_cost
+            icon: mdi:currency-eur
+          - type: entity
+            entity: sensor.co2_signal_co2_intensity
+            icon: mdi:molecule-co2
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: grid
+        columns: 4
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.inverter_total_power
+            name: Solar
+            min: 0
+            max: 6000
+          - type: gauge
+            entity: sensor.dsmr_reading_electricity_currently_delivered
+            name: Import
+            min: 0
+            max: 8
+          - type: gauge
+            entity: sensor.dsmr_reading_electricity_currently_returned
+            name: Export
+            min: 0
+            max: 8
+          - type: gauge
+            entity: sensor.dsmr_consumption_gas_currently_delivered
+            name: Gas
+            min: 0
+            max: 3
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+              padding: 8px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Today
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        span:
+          start: day
+        series:
+          - entity: sensor.inverter_total_power
+            name: Solar
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.dsmr_reading_electricity_currently_delivered
+            name: Import
+            group_by:
+              func: avg
+              duration: 10min
+            transform: 'return x * 1000;' # convert KW to W
+          - entity: sensor.dsmr_reading_electricity_currently_returned
+            name: Export
+            group_by:
+              func: avg
+              duration: 10min
+            transform: 'return x * 1000;' # convert KW to W
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 9
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Totals
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - sensor.dsmr_day_consumption_electricity_merged
+              - sensor.dsmr_day_consumption_electricity_returned_merged
+              - sensor.dsmr_day_consumption_gas
+              - sensor.dsmr_day_consumption_total_cost
+              - sensor.dsmr_current_month_total_cost
+              - sensor.dsmr_current_year_total_cost
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 9 / 13
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Solar inverters
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: entities
+                title: Front inverter
+                show_header_toggle: false
+                entities:
+                  - sensor.inverter_voor_status
+                  - sensor.inverter_voor_energy_today
+                  - sensor.inverter_voor_energy_this_month
+                  - sensor.inverter_voor_temperature
+                  - sensor.inverter_voor_grid_1_ac_voltage
+                  - sensor.inverter_voor_grid_1_ac_current
+              - type: entities
+                title: Rear inverter
+                show_header_toggle: false
+                entities:
+                  - sensor.inverter_achter_status
+                  - sensor.inverter_achter_energy_today
+                  - sensor.inverter_achter_energy_this_month
+                  - sensor.inverter_achter_temperature
+                  - sensor.inverter_achter_grid_1_ac_voltage
+                  - sensor.inverter_achter_grid_1_ac_current
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 9
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Measured plugs
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.meterkast_power_switch_electric_w
+                name: Meterkast switch
+              - type: custom:mushroom-entity-card
+                entity: sensor.kantoor_power_switch_electric_consumption_w_2
+                name: Office switch
+              - type: custom:mushroom-entity-card
+                entity: sensor.ender_3d_power_switch_electric_consumption_w
+                name: 3D printer
+              - type: custom:mushroom-entity-card
+                entity: sensor.zolder_power_switch_electric_consumption_w_2
+                name: Attic switch
+              - type: custom:mushroom-entity-card
+                entity: sensor.buiten_stekker_electric_consumption_w
+                name: Outside plug
+              - type: custom:mushroom-entity-card
+                entity: sensor.achter_stekker_electric_consumption_w_3
+                name: Backyard plug
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 9 / 13
+  - title: Security
+    path: security
+    icon: mdi:shield-lock
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      - type: markdown
+        content: |
+          # Security
+          Physical security, SIEM signals, surveillance and certificates
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(var(--rgb-card-background-color), 0.72);
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              border-radius: 22px;
+              box-shadow: none;
+              padding: 4px 10px 0 10px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: template
+            icon: mdi:shield-home
+            content: '{{ states(''alarm_control_panel.alarm'') }}'
+            icon_color: >
+              {% if is_state('alarm_control_panel.alarm', 'disarmed') %}red{%
+              else %}green{% endif %}
+          - type: template
+            icon: mdi:shield-check
+            content: SIEM {{ states('sensor.siem_security_score') }}
+            icon_color: blue
+          - type: template
+            icon: mdi:alert-octagon
+            content: Crit {{ states('sensor.wazuh_critical_24h') }}
+            icon_color: >
+              {% if states('sensor.wazuh_critical_24h')|int(0) > 0 %}red{% else
+              %}green{% endif %}
+          - type: template
+            icon: mdi:alert
+            content: High {{ states('sensor.wazuh_high_24h') }}
+            icon_color: >
+              {% if states('sensor.wazuh_high_24h')|int(0) > 0 %}amber{% else
+              %}green{% endif %}
+          - type: template
+            icon: mdi:nas
+            content: >
+              {% if is_state('binary_sensor.synology_security_status', 'on') or
+              is_state('binary_sensor.synology_nas_security_status', 'on') %}
+                NAS warning
+              {% else %}
+                NAS OK
+              {% endif %}
+            icon_color: >
+              {% if is_state('binary_sensor.synology_security_status', 'on') or
+              is_state('binary_sensor.synology_nas_security_status', 'on') %}
+                red
+              {% else %}
+                green
+              {% endif %}
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: grid
+        columns: 4
+        square: false
+        cards:
+          - type: custom:button-card
+            entity: binary_sensor.frontdoor_open
+            name: Front door
+            icon: mdi:door-front
+            show_state: true
+            state:
+              - value: 'on'
+                color: rgb(243, 139, 168)
+              - value: 'off'
+                color: rgb(166, 227, 161)
+          - type: custom:button-card
+            entity: binary_sensor.front_door_motion
+            name: Door motion
+            icon: mdi:motion-sensor
+            show_state: true
+            state:
+              - value: 'on'
+                color: rgb(243, 139, 168)
+              - value: 'off'
+                color: rgb(166, 227, 161)
+          - type: custom:button-card
+            entity: binary_sensor.back_yard_motion_sensor_motion_detection
+            name: Backyard motion
+            icon: mdi:motion-sensor
+            show_state: true
+            state:
+              - value: 'on'
+                color: rgb(243, 139, 168)
+              - value: 'off'
+                color: rgb(166, 227, 161)
+          - type: custom:button-card
+            entity: binary_sensor.g3_flex_motion
+            name: G3 Flex motion
+            icon: mdi:cctv
+            show_state: true
+            state:
+              - value: 'on'
+                color: rgb(243, 139, 168)
+              - value: 'off'
+                color: rgb(166, 227, 161)
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+              padding: 8px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: SIEM / Wazuh
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - sensor.siem_security_score
+              - sensor.wazuh_top_rule_24h
+              - sensor.wazuh_critical_24h
+              - sensor.wazuh_high_24h
+              - sensor.wazuh_medium_24h
+              - sensor.wazuh_low_24h
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 5
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Certificates
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - sensor.home_assistant_certificate_expiry
+              - sensor.unifi_controller_certificate_expiry
+              - sensor.plex_certificate_expiry
+              - sensor.vtt_certificate_expiry
+              - sensor.sonarr_certificate_expiry
+              - sensor.radarr_certificate_expiry
+              - sensor.haproxy_certificate_expiry
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 5 / 9
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Response times
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        span:
+          start: day
+        series:
+          - entity: sensor.home_assistant_response_time
+            name: Home Assistant
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.unifi_controller_response_time
+            name: UniFi
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.haproxy_response_time
+            name: HAProxy
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.internet_access_response_time
+            name: Internet
+            group_by:
+              func: avg
+              duration: 15min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 9 / 13
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: picture-entity
+            entity: camera.front_door_live_view
+            camera_view: live
+            name: Front door live
+          - type: picture-entity
+            entity: camera.g3_flex_high_resolution_channel
+            camera_view: live
+            name: G3 Flex
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+              overflow: hidden;
+            }
+        view_layout:
+          grid-column: 1 / 9
+      - type: entities
+        title: Alarm panels
+        show_header_toggle: false
+        entities:
+          - alarm_control_panel.alarm
+          - alarm_control_panel.beneden
+          - alarm_control_panel.boven
+          - switch.synology_surveillance_station_home_mode
+          - switch.synology_nas_surveillance_station_home_mode
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 9 / 13
+  - title: Homelab
+    path: homelab
+    icon: mdi:server
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      - type: markdown
+        content: |
+          # Homelab & administration
+          Infra, uptime, containers, updates and backup health
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(var(--rgb-card-background-color), 0.72);
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              border-radius: 22px;
+              box-shadow: none;
+              padding: 4px 10px 0 10px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: template
+            icon: mdi:docker
+            content: >
+              {{ states('sensor.local_containers_running') }} / {{
+              states('sensor.local_container_count') }}
+            icon_color: blue
+          - type: template
+            icon: mdi:backup-restore
+            content: '{{ states(''sensor.backup_backup_manager_state'') }}'
+            icon_color: >
+              {% if states('sensor.backup_backup_manager_state') in ['idle',
+              'ready', 'ok'] %}green{% else %}amber{% endif %}
+          - type: template
+            icon: mdi:download-network
+            content: >
+              {{ states('sensor.speedtest_download')|round(0) }}↓ {{
+              states('sensor.speedtest_upload')|round(0) }}↑
+            icon_color: teal
+          - type: template
+            icon: mdi:update
+            content: |
+              {% set updates = [
+                states('update.home_assistant_core_update'),
+                states('update.home_assistant_operating_system_update'),
+                states('update.home_assistant_supervisor_update'),
+                states('update.hacs_update'),
+                states('update.mikrotik_router_update'),
+                states('update.proxmox_ve_update'),
+                states('update.synology_dsm_update'),
+                states('update.synology_nas_dsm_update'),
+                states('update.zigbee2mqtt_update'),
+                states('update.esphome_update'),
+                states('update.z_wave_js_ui_update'),
+                states('update.studio_code_server_update')
+              ] %} {{ updates | select('eq', 'on') | list | count }} pending
+            icon_color: >
+              {% set updates = [
+                states('update.home_assistant_core_update'),
+                states('update.home_assistant_operating_system_update'),
+                states('update.home_assistant_supervisor_update'),
+                states('update.hacs_update'),
+                states('update.mikrotik_router_update'),
+                states('update.proxmox_ve_update'),
+                states('update.synology_dsm_update'),
+                states('update.synology_nas_dsm_update'),
+                states('update.zigbee2mqtt_update'),
+                states('update.esphome_update'),
+                states('update.z_wave_js_ui_update'),
+                states('update.studio_code_server_update')
+              ] %} {% if (updates | select('eq', 'on') | list | count) > 0
+              %}amber{% else %}green{% endif %}
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: grid
+        columns: 6
+        square: false
+        cards:
+          - type: custom:button-card
+            entity: binary_sensor.prometheus_status
+            name: Prometheus
+            icon: mdi:chart-line
+            show_state: true
+            state:
+              - value: 'on'
+                color: rgb(166, 227, 161)
+              - value: 'off'
+                color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: binary_sensor.loki_status
+            name: Loki
+            icon: mdi:database-search
+            show_state: true
+            state:
+              - value: 'on'
+                color: rgb(166, 227, 161)
+              - value: 'off'
+                color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: binary_sensor.uptime_kuma_status
+            name: Uptime Kuma
+            icon: mdi:heart-pulse
+            show_state: true
+            state:
+              - value: 'on'
+                color: rgb(166, 227, 161)
+              - value: 'off'
+                color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: binary_sensor.alertmanager_status
+            name: Alertmanager
+            icon: mdi:alarm-light
+            show_state: true
+            state:
+              - value: 'on'
+                color: rgb(166, 227, 161)
+              - value: 'off'
+                color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: binary_sensor.mariadb_status
+            name: MariaDB
+            icon: mdi:database
+            show_state: true
+            state:
+              - value: 'on'
+                color: rgb(166, 227, 161)
+              - value: 'off'
+                color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: sensor.home_assistant_status
+            name: Home Assistant
+            icon: mdi:home-assistant
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: online
+                color: rgb(166, 227, 161)
+              - operator: default
+                color: rgb(243, 139, 168)
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+              padding: 8px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Core services
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - sensor.home_assistant_status
+              - sensor.unifi_controller_status
+              - sensor.mariadb_status
+              - sensor.internet_access_status
+              - sensor.haproxy_status
+              - sensor.ad_guard_status
+              - sensor.ad_guard_2_status
+              - sensor.ad_guard_k8s_status
+              - sensor.emqx_mqtt_status
+              - sensor.emqx_node_1_status
+              - sensor.emqx_node_2_status
+              - sensor.plex_status
+              - sensor.sonarr_status
+              - sensor.radarr_status
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 5
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Service latency
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        span:
+          start: day
+        series:
+          - entity: sensor.home_assistant_response_time
+            name: HA
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.mariadb_response_time
+            name: MariaDB
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.ad_guard_response_time
+            name: AdGuard
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.emqx_mqtt_response_time
+            name: EMQX
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.internet_access_response_time
+            name: Internet
+            group_by:
+              func: avg
+              duration: 15min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 5 / 13
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Docker host summary
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.local_container_count
+                name: Total containers
+              - type: custom:mushroom-entity-card
+                entity: sensor.local_containers_running
+                name: Running containers
+              - type: custom:mushroom-entity-card
+                entity: sensor.local_containers_stopped
+                name: Stopped containers
+              - type: custom:mushroom-entity-card
+                entity: sensor.local_image_count
+                name: Images
+              - type: custom:mushroom-entity-card
+                entity: sensor.prometheus_memory_usage_percentage
+                name: Prometheus RAM
+              - type: custom:mushroom-entity-card
+                entity: sensor.loki_memory_usage_percentage
+                name: Loki RAM
+              - type: custom:mushroom-entity-card
+                entity: sensor.mariadb_memory_usage_percentage
+                name: MariaDB RAM
+              - type: custom:mushroom-entity-card
+                entity: sensor.uptime_kuma_memory_usage_percentage
+                name: Uptime Kuma RAM
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 5
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Network core
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: device_tracker.us_24_poe_250w
+                primary: Main PoE switch
+                secondary: >
+                  {{ states('sensor.us_24_poe_250w_state') }} • {{
+                  states('sensor.us_24_poe_250w_temperature') }}
+                icon: mdi:switch
+                icon_color: >
+                  {% if is_state('device_tracker.us_24_poe_250w', 'home')
+                  %}green{% else %}red{% endif %}
+              - type: custom:mushroom-template-card
+                entity: device_tracker.garage
+                primary: Garage switch
+                secondary: >
+                  {{ states('sensor.garage_state') }} • CPU {{
+                  states('sensor.garage_cpu_utilization') }}%
+                icon: mdi:switch
+                icon_color: >
+                  {% if is_state('device_tracker.garage', 'home') %}green{% else
+                  %}red{% endif %}
+              - type: custom:mushroom-template-card
+                entity: device_tracker.boven
+                primary: Upstairs switch
+                secondary: >
+                  {{ states('sensor.boven_state') }} • CPU {{
+                  states('sensor.boven_cpu_utilization') }}%
+                icon: mdi:switch
+                icon_color: >
+                  {% if is_state('device_tracker.boven', 'home') %}green{% else
+                  %}red{% endif %}
+              - type: custom:mushroom-template-card
+                entity: device_tracker.zolder
+                primary: Attic switch
+                secondary: >
+                  {{ states('sensor.zolder_state') }} • CPU {{
+                  states('sensor.zolder_cpu_utilization') }}%
+                icon: mdi:switch
+                icon_color: >
+                  {% if is_state('device_tracker.zolder', 'home') %}green{% else
+                  %}red{% endif %}
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 5 / 9
+      - type: entities
+        title: Backup & maintenance
+        show_header_toggle: false
+        entities:
+          - sensor.backup_backup_manager_state
+          - sensor.backup_next_scheduled_automatic_backup
+          - sensor.backup_last_successful_automatic_backup
+          - sensor.backup_last_attempted_automatic_backup
+          - event.backup_automatic_backup
+          - update.home_assistant_core_update
+          - update.home_assistant_operating_system_update
+          - update.home_assistant_supervisor_update
+          - update.hacs_update
+          - update.zigbee2mqtt_update
+          - update.esphome_update
+          - update.z_wave_js_ui_update
+          - update.proxmox_ve_update
+          - update.synology_dsm_update
+          - update.synology_nas_dsm_update
+          - update.mikrotik_router_update
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              background: rgba(30, 30, 46, 0.72);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 9 / 13
+  - title: Health
+    path: health
+    icon: mdi:heart-pulse
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    cards: []

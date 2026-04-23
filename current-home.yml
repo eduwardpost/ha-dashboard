@@ -1,0 +1,289 @@
+views:
+  - badges:
+      - entity: group.persons
+      - type: entity
+        show_name: false
+        show_state: true
+        show_icon: true
+        entity: alarm_control_panel.alarm
+      - type: entity
+        show_name: false
+        show_state: true
+        show_icon: true
+        entity: input_boolean.guest_mode
+      - type: entity
+        show_name: false
+        show_state: true
+        show_icon: true
+        entity: input_boolean.vacation_mode
+      - type: entity
+        entity: input_boolean.slaap_modus
+    cards: []
+    type: sections
+    title: home
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading_style: title
+          - show_current: true
+            show_forecast: true
+            type: weather-forecast
+            entity: weather.forecast_home
+            forecast_type: daily
+          - type: custom:power-flow-card-plus
+            entities:
+              battery:
+                color_icon: true
+                color_circle: true
+                state_of_charge: sensor.ups_battery_charge
+                invert_state: false
+                use_metadata: false
+              grid:
+                entity:
+                  consumption: sensor.dsmr_reading_electricity_currently_delivered
+                  production: sensor.dsmr_reading_electricity_currently_returned
+                color_circle: true
+                display_state: two_way
+                color_value: true
+                color_icon: true
+              fossil_fuel_percentage:
+                entity: sensor.co2_signal_grid_fossil_fuel_percentage
+                color_value: false
+                color_icon: true
+                state_type: percentage
+              home:
+                color_icon: true
+              individual:
+                - entity: sensor.zolder_power_switch_power_2
+                  name: Servers
+                  color_icon: true
+                  icon: mdi:server
+                  calculate_flow_rate: true
+                  color_value: false
+                  color:
+                    - 255
+                    - 38
+                    - 0
+                - entity: sensor.meterkast_power_switch_electric_consumption_w_2
+                  name: Network
+                  icon: mdi:access-point-network
+                  color_icon: true
+                - entity: sensor.kantoor_power_switch_electric_consumption_w
+                  name: Office
+                  icon: mdi:office-building
+                  color:
+                    - 94
+                    - 48
+                    - 235
+              solar:
+                entity: sensor.inverter_total_power
+                color_icon: true
+            clickable_entities: true
+            display_zero_lines:
+              mode: show
+              transparency: 50
+              grey_color:
+                - 189
+                - 189
+                - 189
+            use_new_flow_rate_model: true
+            w_decimals: 0
+            kw_decimals: 1
+            min_flow_rate: 0.75
+            max_flow_rate: 6
+            max_expected_power: 2000
+            min_expected_power: 0.01
+            watt_threshold: 1000
+            transparency_zero_lines: 0
+            dashboard_link: /energy
+            title: Current energy distribution
+            theme: Backend-selected
+          - type: vertical-stack
+            cards:
+              - type: horizontal-stack
+                cards:
+                  - hours_to_show: 24
+                    graph: line
+                    type: sensor
+                    entity: sensor.dsmr_reading_electricity_currently_delivered
+                    detail: 1
+                    name: IN
+                    theme: Backend-selected
+                  - hours_to_show: 24
+                    graph: line
+                    type: sensor
+                    entity: sensor.dsmr_reading_electricity_currently_returned
+                    detail: 1
+                    name: OUT
+                    theme: Backend-selected
+                  - hours_to_show: 24
+                    graph: line
+                    type: sensor
+                    entity: sensor.dsmr_day_consumption_gas
+                    name: GAS
+                    detail: 1
+                    theme: Backend-selected
+              - type: horizontal-stack
+                cards:
+                  - hours_to_show: 24
+                    graph: line
+                    type: sensor
+                    entity: sensor.zolder_power_switch_power_2
+                    name: Attic
+                    detail: 1
+                    theme: Backend-selected
+                  - graph: line
+                    hours_to_show: 24
+                    type: sensor
+                    entity: sensor.meterkast_power_switch_electric_consumption_w
+                    name: Network
+                    detail: 1
+                    theme: Backend-selected
+                  - graph: line
+                    hours_to_show: 24
+                    type: sensor
+                    entity: sensor.kantoor_power_switch_electric_consumption_w_2
+                    name: Office
+                    detail: 1
+                    theme: Backend-selected
+          - type: custom:mushroom-entity-card
+            entity: sensor.tempature_sensor_humidity
+            fill_container: true
+            name: Zolder humidiy
+            grid_options:
+              columns: 6
+              rows: 1
+            layout: vertical
+          - type: custom:mushroom-entity-card
+            entity: sensor.tempature_sensor_temperature
+            fill_container: true
+            name: Zolder temperature
+            grid_options:
+              rows: 1
+            layout: vertical
+      - type: grid
+        cards:
+          - type: heading
+            heading_style: title
+          - type: entities
+            entities:
+              - entity: sensor.afvalinfo_thuis_trash_type_today
+              - entity: sensor.afvalinfo_thuis_trash_type_tomorrow
+              - entity: sensor.afvalinfo_thuis_restafval_2
+              - entity: sensor.afvalinfo_thuis_papier_2
+          - initial_view: listWeek
+            type: calendar
+            entities:
+              - calendar.afvalinfo_thuis_calendar
+              - calendar.kyokushin_karate
+              - calendar.persoonlijk
+          - show_state: true
+            show_name: true
+            camera_view: auto
+            fit_mode: cover
+            type: picture-entity
+            entity: camera.192_168_72_5
+            camera_image: camera.192_168_72_5
+          - type: custom:love-lock-card
+            title: Garage door
+            popup: password
+            password: post
+            cards:
+              - show_name: false
+                show_icon: true
+                type: tile
+                tap_action:
+                  action: toggle
+                entity: switch.garage_door_pulse_switch
+                show_state: false
+          - type: custom:mushroom-entity-card
+            entity: binary_sensor.frontdoor_window_door_is_open
+            fill_container: true
+            name: Front door
+            grid_options:
+              columns: 12
+              rows: 1
+      - type: grid
+        cards:
+          - type: heading
+            heading_style: title
+          - type: custom:formulaone-card
+            card_type: next_race
+            actions:
+              tap_action:
+                action: navigate
+                navigation_path: /formula-1
+            f1_font: true
+            show_carnumber: true
+            show_raceinfo: false
+            only_show_date: true
+            show_lastyears_result: false
+            hide_tracklayout: false
+            location_clickable: true
+            image_clickable: true
+            hide_racedatetimes: false
+          - features:
+              - type: vacuum-commands
+                commands:
+                  - start_pause
+                  - stop
+                  - locate
+            type: tile
+            entity: vacuum.roombot
+            features_position: bottom
+            vertical: false
+          - type: tile
+            entity: binary_sensor.roombot_bin_full
+            features_position: bottom
+            vertical: true
+          - type: tile
+            entity: sensor.roombot_battery_level
+            features_position: bottom
+            vertical: false
+            grid_options:
+              columns: full
+              rows: 1
+          - type: tile
+            entity: automation.start_roomba_when_away
+            tap_action:
+              action: toggle
+            icon_tap_action:
+              action: toggle
+            features_position: bottom
+            vertical: false
+            grid_options:
+              columns: 12
+              rows: 1
+          - show_name: true
+            show_icon: true
+            show_state: true
+            type: glance
+            entities:
+              - entity: sun.sun
+              - entity: sensor.sun_next_dusk
+              - entity: sensor.sun_next_dawn
+              - entity: sensor.moon_phase
+            state_color: false
+    max_columns: 4
+    icon: mdi:home-assistant
+    top_margin: false
+  - type: panel
+    title: ground floor
+    path: ground-floor
+    icon: mdi:home-floor-g
+    cards:
+      - type: picture-elements
+        elements:
+          - type: state-badge
+            entity: binary_sensor.remote_ui
+            style:
+              top: 32%
+              left: 40%
+        image: https://demo.home-assistant.io/stub_config/floorplan.png
+        dark_mode_image: https://demo.home-assistant.io/stub_config/floorplan.png
+  - type: panel
+    icon: mdi:home-floor-1
+    path: first-floor
+    title: First floor
+    cards: []
