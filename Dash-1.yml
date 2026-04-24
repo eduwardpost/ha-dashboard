@@ -774,11 +774,11 @@ views:
                 - 255
                 - 38
                 - 0
-            - entity: sensor.meterkast_power_switch_electric_consumption_w_2
+            - entity: sensor.meterkast_power_switch_electric_consumption_w
               name: Network
               icon: mdi:access-point-network
               color_icon: true
-            - entity: sensor.kantoor_power_switch_electric_consumption_w
+            - entity: sensor.kantoor_power_switch_electric_consumption_w_2
               name: Office
               icon: mdi:office-building
               color:
@@ -866,10 +866,10 @@ views:
           - entity: sensor.zolder_power_switch_power_2
             name: Servers
             type: area
-          - entity: sensor.meterkast_power_switch_electric_consumption_w_2
+          - entity: sensor.meterkast_power_switch_electric_consumption_w
             name: Network
             type: line
-          - entity: sensor.kantoor_power_switch_electric_consumption_w
+          - entity: sensor.kantoor_power_switch_electric_consumption_w_2
             name: Office
             type: line
   - title: Security

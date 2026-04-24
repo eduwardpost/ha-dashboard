@@ -114,7 +114,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
               padding: 10px;
             }
@@ -124,7 +124,7 @@ views:
         view_layout:
           grid-column: 1 / 13
       - type: grid
-        columns: 3
+        columns: 4
         square: false
         cards:
           - type: custom:button-card
@@ -135,6 +135,35 @@ views:
             tap_action:
               action: navigate
               navigation_path: /ha-dashboard/security
+            styles:
+              card:
+                - border-radius: 22px
+                - padding: 18px 12px
+                - border: 1px solid rgba(180, 190, 254, 0.18)
+              icon:
+                - width: 34px
+              name:
+                - font-size: 17px
+                - font-weight: 600
+              state:
+                - font-size: 14px
+            state:
+              - value: disarmed
+                color: rgb(243, 139, 168)
+              - value: armed_home
+                color: rgb(166, 227, 161)
+              - value: armed_away
+                color: rgb(137, 180, 250)
+              - value: armed_night
+                color: rgb(203, 166, 247)
+          - type: custom:button-card
+            entity: input_boolean.current_light_state # TODO: set to more generic "home security status" sensor that combines alarm state, surveillance station home mode and NAS security status
+            name: Lights
+            icon: mdi:lightbulb
+            show_state: true
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/home
             styles:
               card:
                 - border-radius: 22px
@@ -236,46 +265,51 @@ views:
         columns: 3
         square: false
         cards:
-          - type: custom:apexcharts-card
-            header:
-              show: true
-              title: Live power trend
-              show_states: true
-              colorize_states: true
-            graph_span: 12h
-            now:
-              show: true
-            series:
-              - entity: sensor.inverter_total_power
-                transform: 'return x / 1000;' # convert KW to W
-                name: Solar
-                type: line
-                group_by:
-                  func: avg
-                  duration: 5min
-              - entity: sensor.dsmr_reading_electricity_currently_delivered
-                name: Import
-                type: line
-                group_by:
-                  func: avg
-                  duration: 5min
-              - entity: sensor.dsmr_reading_electricity_currently_returned
-                name: Export
-                type: line
-                group_by:
-                  func: avg
-                  duration: 5min
-            card_mod:
-              style: |
-                ha-card {
-                  border-radius: 22px;
-                  border: 1px solid rgba(180, 190, 254, 0.18);
-                  background: rgba(30, 30, 46, 0.72);
-                  box-shadow: none;
-                }
+          - type: grid
+            title: Live power trend
             view_layout:
-              grid-column: 1 / 7
-          
+              grid-area: quick
+            columns: 1
+            square: false
+            cards:
+            - type: custom:apexcharts-card
+              header:
+                show: true
+                show_states: true
+                colorize_states: true
+              graph_span: 12h
+              now:
+                show: true
+              series:
+                - entity: sensor.inverter_total_power
+                  transform: 'return x / 1000;' # convert KW to W
+                  name: Solar
+                  type: line
+                  group_by:
+                    func: avg
+                    duration: 5min
+                - entity: sensor.dsmr_reading_electricity_currently_delivered
+                  name: Import
+                  type: line
+                  group_by:
+                    func: avg
+                    duration: 5min
+                - entity: sensor.dsmr_reading_electricity_currently_returned
+                  name: Export
+                  type: line
+                  group_by:
+                    func: avg
+                    duration: 5min
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 1px solid rgba(180, 190, 254, 0.18);
+                    
+                    box-shadow: none;
+                  }
+              view_layout:
+                grid-column: 1 / 7            
           - type: grid
             title: Quick actions
             view_layout:
@@ -343,7 +377,7 @@ views:
               grid-area: issues
             card:
               type: grid
-              title: Issues
+              title: Requires attention
               columns: 2
               square: false
             card_param: cards
@@ -505,6 +539,32 @@ views:
                         - opacity: 0.75
                       icon:
                         - color: rgb(220, 70, 70)
+                - domain: update
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:update
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 160, 60, 0.55)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 160, 60)
               exclude: []
             sort:
               method: friendly_name
@@ -518,7 +578,266 @@ views:
     icon: mdi:sofa
     type: custom:layout-card
     layout_type: custom:grid-layout
-    cards: []
+    cards:
+    
+
+    - type: custom:stack-in-card
+      cards:
+        - type: custom:mushroom-title-card
+          title: Main lights
+          subtitle: Most used lights
+        - type: grid
+          columns: 3
+          square: false
+          cards:
+            - type: custom:mushroom-light-card
+              entity: light.downstairs
+              name: Downstairs
+              show_brightness_control: true
+              collapsible_controls: true
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-light-card
+              entity: light.schilderij
+              name: Paintings
+              show_brightness_control: true
+              collapsible_controls: true
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-light-card
+              entity: light.kitchen_lights
+              name: Kitchen
+              show_brightness_control: true
+              collapsible_controls: true
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-light-card
+              entity: light.eetkamer
+              name: Dining
+              show_brightness_control: true
+              collapsible_controls: true
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-light-card
+              entity: light.hal
+              name: Hall
+              show_brightness_control: true
+              collapsible_controls: true
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-light-card
+              entity: light.kantoor
+              name: Office
+              show_brightness_control: true
+              collapsible_controls: true
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-light-card
+              entity: light.buiten_lampen_oprit
+              name: Driveway
+              show_brightness_control: false
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-light-card
+              entity: light.buiten_lampen_garage
+              name: Garage outside
+              show_brightness_control: false
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-light-card
+              entity: light.buiten_stekker
+              name: Outside plug
+              show_brightness_control: false
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+      card_mod:
+        style: |
+          ha-card {
+            border-radius: 22px;
+            border: 1px solid rgba(180, 190, 254, 0.18);
+            box-shadow: none;
+          }
+      view_layout:
+        grid-column: 1 / 7
+    - type: custom:stack-in-card
+      cards:
+        - type: custom:mushroom-title-card
+          title: Climate
+          subtitle: Indoor conditions
+        - type: grid
+          columns: 2
+          square: false
+          cards:
+            - type: custom:mushroom-entity-card
+              entity: sensor.tempature_sensor_temperature
+              name: Living temp
+              icon: mdi:thermometer
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-entity-card
+              entity: sensor.tempature_sensor_humidity
+              name: Living humidity
+              icon: mdi:water-percent
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-entity-card
+              entity: sensor.multisensor_6_air_temperature
+              name: Multisensor temp
+              icon: mdi:thermometer-lines
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-entity-card
+              entity: sensor.multisensor_6_carbon_dioxide_co2_level
+              name: CO₂
+              icon: mdi:molecule-co2
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-entity-card
+              entity: sensor.multisensor_6_particulate_matter_2_5
+              name: PM2.5
+              icon: mdi:blur
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            - type: custom:mushroom-entity-card
+              entity: sensor.multisensor_6_humidity
+              name: Multisensor humidity
+              icon: mdi:water-percent
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+      card_mod:
+        style: |
+          ha-card {
+            border-radius: 22px;
+            border: 1px solid rgba(180, 190, 254, 0.18);
+            box-shadow: none;
+          }
+      view_layout:
+        grid-column: 7 / 13
+    - type: custom:stack-in-card
+      cards:
+        - type: custom:mushroom-title-card
+          title: Vacuum / robot
+        - type: grid
+          columns: 2
+          square: false
+          cards:
+            - type: custom:mushroom-vacuum-card
+              entity: vacuum.roombot
+              name: Roombot
+              
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+              commands:
+                - start_pause
+                - stop
+                - return_home
+            - type: entities
+              show_header_toggle: false              
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 22px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+              entities:
+                - sensor.roombot_battery_level
+                - sensor.roombot_tank_level
+                - binary_sensor.roombot_bin_full
+                - sensor.roombot_total_missions
+                - sensor.roombot_failed_missions
+      card_mod:
+        style: |
+          ha-card {
+            border-radius: 22px;
+            border: 1px solid rgba(180, 190, 254, 0.18);
+            box-shadow: none;
+          }
+      view_layout:
+        grid-column: 1 / 7
+      
+
+
   - title: Energy
     path: energy
     icon: mdi:lightning-bolt
@@ -529,22 +848,7 @@ views:
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
-    cards:
-      - type: markdown
-        content: |
-          # Power & energy
-          Production, import/export, gas and major consumers
-        card_mod:
-          style: |
-            ha-card {
-              background: rgba(var(--rgb-card-background-color), 0.72);
-              border: 1px solid rgba(180, 190, 254, 0.18);
-              border-radius: 22px;
-              box-shadow: none;
-              padding: 4px 10px 0 10px;
-            }
-        view_layout:
-          grid-column: 1 / 13
+    cards:      
       - type: custom:mushroom-chips-card
         alignment: justify
         chips:
@@ -571,7 +875,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
               padding: 10px;
             }
@@ -609,7 +913,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
               padding: 8px;
             }
@@ -626,6 +930,7 @@ views:
           start: day
         series:
           - entity: sensor.inverter_total_power
+            transform: 'return x / 1000;' # convert KW to W
             name: Solar
             group_by:
               func: avg
@@ -635,46 +940,98 @@ views:
             group_by:
               func: avg
               duration: 10min
-            transform: 'return x * 1000;' # convert KW to W
           - entity: sensor.dsmr_reading_electricity_currently_returned
             name: Export
             group_by:
               func: avg
               duration: 10min
-            transform: 'return x * 1000;' # convert KW to W
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
           grid-column: 1 / 9
-      - type: custom:stack-in-card
-        cards:
-          - type: custom:mushroom-title-card
-            title: Totals
-          - type: entities
-            show_header_toggle: false
-            entities:
-              - sensor.dsmr_day_consumption_electricity_merged
-              - sensor.dsmr_day_consumption_electricity_returned_merged
-              - sensor.dsmr_day_consumption_gas
-              - sensor.dsmr_day_consumption_total_cost
-              - sensor.dsmr_current_month_total_cost
-              - sensor.dsmr_current_year_total_cost
-        card_mod:
-          style: |
-            ha-card {
-              border-radius: 22px;
-              border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
-              box-shadow: none;
-            }
+      
+
+      - type: custom:power-flow-card-plus
         view_layout:
           grid-column: 9 / 13
+        entities:
+          battery:
+            color_icon: true
+            color_circle: true
+            state_of_charge: sensor.ups_battery_charge
+            invert_state: false
+            use_metadata: false
+          grid:
+            entity:
+              consumption: sensor.dsmr_reading_electricity_currently_delivered
+              production: sensor.dsmr_reading_electricity_currently_returned
+            color_circle: true
+            display_state: two_way
+            color_value: true
+            color_icon: true
+          fossil_fuel_percentage:
+            entity: sensor.co2_signal_grid_fossil_fuel_percentage
+            color_value: false
+            color_icon: true
+            state_type: percentage
+          home:
+            color_icon: true
+          individual:
+            - entity: sensor.zolder_power_switch_power_2
+              name: Servers
+              color_icon: true
+              icon: mdi:server
+              calculate_flow_rate: true
+              color_value: false
+              color:
+                - 255
+                - 38
+                - 0
+            - entity: sensor.meterkast_power_switch_electric_consumption_w
+              name: Network
+              icon: mdi:access-point-network
+              color_icon: true
+            - entity: sensor.kantoor_power_switch_electric_consumption_w_2
+              name: Office
+              icon: mdi:office-building
+              color:
+                - 94
+                - 48
+                - 235
+          solar:
+            entity: sensor.inverter_total_power
+            color_icon: true
+        clickable_entities: true
+        display_zero_lines:
+          mode: show
+          transparency: 50
+          grey_color:
+            - 189
+            - 189
+            - 189
+        use_new_flow_rate_model: true
+        w_decimals: 0
+        kw_decimals: 1
+        min_flow_rate: 0.75
+        max_flow_rate: 6
+        max_expected_power: 2000
+        min_expected_power: 0.01
+        watt_threshold: 1000
+        transparency_zero_lines: 0
+        dashboard_link: /energy
+        title: Current energy distribution
+        theme: Backend-selected
+      
+
+
+
+      
       - type: custom:stack-in-card
         cards:
           - type: custom:mushroom-title-card
@@ -708,7 +1065,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -744,7 +1101,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -821,7 +1178,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
               padding: 10px;
             }
@@ -879,7 +1236,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
               padding: 8px;
             }
@@ -903,7 +1260,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -927,7 +1284,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -967,7 +1324,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -989,7 +1346,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
               overflow: hidden;
             }
@@ -1009,7 +1366,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -1099,7 +1456,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
               padding: 10px;
             }
@@ -1179,7 +1536,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
               padding: 8px;
             }
@@ -1211,7 +1568,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -1256,7 +1613,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -1298,7 +1655,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -1356,7 +1713,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -1386,7 +1743,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -1443,7 +1800,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
               padding: 10px;
             }
@@ -1481,7 +1838,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
               padding: 8px;
             }
@@ -1512,7 +1869,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
@@ -1541,7 +1898,7 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              background: rgba(30, 30, 46, 0.72);
+              
               box-shadow: none;
             }
         view_layout:
