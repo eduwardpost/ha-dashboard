@@ -66,6 +66,15 @@ views:
               {% else %}
                 red
               {% endif %}
+          - icon: mdi:lock
+            type: template
+            tap_action:
+              entity: lock.elite
+              action: more-info
+            content: >
+              {% if is_state('lock.elite', 'locked') %}Locked{% else %}Unlocked{% endif %}
+            icon_color: >
+              {% if is_state('lock.elite', 'locked') %}green{% else %}red{% endif %}
           - icon: mdi:solar-power
             type: template
             content: '{{ states(''sensor.inverter_total_power'') }} W'
