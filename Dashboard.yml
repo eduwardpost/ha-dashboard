@@ -77,6 +77,9 @@ views:
               {% if is_state('lock.elite', 'locked') %}green{% else %}red{% endif %}
           - icon: mdi:solar-power
             type: template
+            tap_action:
+              entity: sensor.inverter_total_power
+              action: more-info
             content: '{{ states(''sensor.inverter_total_power'') }} W'
             icon_color: yellow
           - icon: mdi:download-network
@@ -166,7 +169,7 @@ views:
               - value: armed_night
                 color: rgb(203, 166, 247)
           - type: custom:button-card
-            entity: input_boolean.current_light_state # TODO: set to more generic "home security status" sensor that combines alarm state, surveillance station home mode and NAS security status
+            entity: input_boolean.current_light_state
             name: Lights
             icon: mdi:lightbulb
             show_state: true
@@ -222,7 +225,7 @@ views:
                 - font-size: 14px
             color: rgb(137, 180, 250)
           - type: custom:button-card
-            entity: binary_sensor.prometheus_status # TODO: change to more generic "homelab health" sensor
+            entity: sensor.prometheus_status # TODO: change to more generic "homelab health" sensor
             name: Homelab
             icon: mdi:chart-line
             show_state: true
@@ -242,9 +245,9 @@ views:
               state:
                 - font-size: 14px
             state:
-              - value: 'on'
+              - value: 'up'
                 color: rgb(166, 227, 161)
-              - value: 'off'
+              - value: 'down'
                 color: rgb(243, 139, 168)
         view_layout:
           grid-column: 1 / 13
@@ -1390,22 +1393,7 @@ views:
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
-    cards:
-      - type: markdown
-        content: |
-          # Homelab & administration
-          Infra, uptime, containers, updates and backup health
-        card_mod:
-          style: |
-            ha-card {
-              background: rgba(var(--rgb-card-background-color), 0.72);
-              border: 1px solid rgba(180, 190, 254, 0.18);
-              border-radius: 22px;
-              box-shadow: none;
-              padding: 4px 10px 0 10px;
-            }
-        view_layout:
-          grid-column: 1 / 13
+    cards:      
       - type: custom:mushroom-chips-card
         alignment: justify
         chips:
@@ -1479,55 +1467,75 @@ views:
         square: false
         cards:
           - type: custom:button-card
-            entity: binary_sensor.prometheus_status
+            entity: sensor.prometheus_status
             name: Prometheus
             icon: mdi:chart-line
             show_state: true
             state:
-              - value: 'on'
+              - value: 'up'
                 color: rgb(166, 227, 161)
-              - value: 'off'
+              - value: 'down'
                 color: rgb(243, 139, 168)
+              - value: 'pending'
+                color: rgb(245, 180, 29)
+              - value: 'maintenance'
+                color: rgb(11, 58, 227)
           - type: custom:button-card
-            entity: binary_sensor.loki_status
+            entity: sensor.loki_status
             name: Loki
             icon: mdi:database-search
             show_state: true
             state:
-              - value: 'on'
+              - value: 'up'
                 color: rgb(166, 227, 161)
-              - value: 'off'
+              - value: 'down'
                 color: rgb(243, 139, 168)
+              - value: 'pending'
+                color: rgb(245, 180, 29)
+              - value: 'maintenance'
+                color: rgb(11, 58, 227)
           - type: custom:button-card
-            entity: binary_sensor.uptime_kuma_status
+            entity: sensor.uptime_kuma_status
             name: Uptime Kuma
             icon: mdi:heart-pulse
             show_state: true
             state:
-              - value: 'on'
+              - value: 'up'
                 color: rgb(166, 227, 161)
-              - value: 'off'
+              - value: 'down'
                 color: rgb(243, 139, 168)
+              - value: 'pending'
+                color: rgb(245, 180, 29)
+              - value: 'maintenance'
+                color: rgb(11, 58, 227)
           - type: custom:button-card
-            entity: binary_sensor.alertmanager_status
+            entity: sensor.alertmanager_status
             name: Alertmanager
             icon: mdi:alarm-light
             show_state: true
             state:
-              - value: 'on'
+              - value: 'up'
                 color: rgb(166, 227, 161)
-              - value: 'off'
+              - value: 'down'
                 color: rgb(243, 139, 168)
+              - value: 'pending'
+                color: rgb(245, 180, 29)
+              - value: 'maintenance'
+                color: rgb(11, 58, 227)
           - type: custom:button-card
-            entity: binary_sensor.mariadb_status
-            name: MariaDB
+            entity: sensor.postgres_status
+            name: PostgreSQL
             icon: mdi:database
             show_state: true
             state:
-              - value: 'on'
+              - value: 'up'
                 color: rgb(166, 227, 161)
-              - value: 'off'
+              - value: 'down'
                 color: rgb(243, 139, 168)
+              - value: 'pending'
+                color: rgb(245, 180, 29)
+              - value: 'maintenance'
+                color: rgb(11, 58, 227)
           - type: custom:button-card
             entity: sensor.home_assistant_status
             name: Home Assistant
@@ -1560,15 +1568,12 @@ views:
             entities:
               - sensor.home_assistant_status
               - sensor.unifi_controller_status
-              - sensor.mariadb_status
               - sensor.internet_access_status
-              - sensor.haproxy_status
+              - sensor.jaeger_status
+              - sensor.syslog_ng_status
+              - sensor.step_ca_acme_status
               - sensor.ad_guard_status
-              - sensor.ad_guard_2_status
-              - sensor.ad_guard_k8s_status
               - sensor.emqx_mqtt_status
-              - sensor.emqx_node_1_status
-              - sensor.emqx_node_2_status
               - sensor.plex_status
               - sensor.sonarr_status
               - sensor.radarr_status
@@ -1597,8 +1602,10 @@ views:
             group_by:
               func: avg
               duration: 15min
-          - entity: sensor.mariadb_response_time
-            name: MariaDB
+          - entity: sensor.postgres_response_time
+            transform: 'return x / 1000;' # convert ms to s
+            unit: 's'
+            name: PostgreSQL
             group_by:
               func: avg
               duration: 15min
@@ -1608,6 +1615,8 @@ views:
               func: avg
               duration: 15min
           - entity: sensor.emqx_mqtt_response_time
+            transform: 'return x / 1000;' # convert ms to s
+            unit: 's'
             name: EMQX
             group_by:
               func: avg
@@ -1630,35 +1639,35 @@ views:
       - type: custom:stack-in-card
         cards:
           - type: custom:mushroom-title-card
-            title: Docker host summary
+            title: PVE VM summary
           - type: grid
             columns: 2
             square: false
             cards:
               - type: custom:mushroom-entity-card
-                entity: sensor.local_container_count
-                name: Total containers
+                entity: binary_sensor.lxc_cloud_epost_local_101_status
+                name: Nextcloud LXC
               - type: custom:mushroom-entity-card
-                entity: sensor.local_containers_running
-                name: Running containers
+                entity: binary_sensor.qemu_freepbx_100_status
+                name: FreePBX VM
               - type: custom:mushroom-entity-card
-                entity: sensor.local_containers_stopped
-                name: Stopped containers
+                entity: binary_sensor.qemu_flight_radar_104_status
+                name: Flight Radar VM
               - type: custom:mushroom-entity-card
-                entity: sensor.local_image_count
-                name: Images
-              - type: custom:mushroom-entity-card
-                entity: sensor.prometheus_memory_usage_percentage
-                name: Prometheus RAM
-              - type: custom:mushroom-entity-card
-                entity: sensor.loki_memory_usage_percentage
-                name: Loki RAM
-              - type: custom:mushroom-entity-card
-                entity: sensor.mariadb_memory_usage_percentage
-                name: MariaDB RAM
-              - type: custom:mushroom-entity-card
-                entity: sensor.uptime_kuma_memory_usage_percentage
-                name: Uptime Kuma RAM
+                entity: sensor.storage_scarif_synology_lun1_disk_used_percentage
+                name: LUN Disk usage
+              # - type: custom:mushroom-entity-card
+              #   entity: sensor.prometheus_memory_usage_percentage
+              #   name: Prometheus RAM
+              # - type: custom:mushroom-entity-card
+              #   entity: sensor.loki_memory_usage_percentage
+              #   name: Loki RAM
+              # - type: custom:mushroom-entity-card
+              #   entity: sensor.postgres_memory_usage_percentage
+              #   name: PostgreSQL RAM
+              # - type: custom:mushroom-entity-card
+              #   entity: sensor.uptime_kuma_memory_usage_percentage
+              #   name: Uptime Kuma RAM
         card_mod:
           style: |
             ha-card {
@@ -1745,7 +1754,6 @@ views:
           - update.z_wave_js_ui_update
           - update.proxmox_ve_update
           - update.synology_dsm_update
-          - update.synology_nas_dsm_update
           - update.mikrotik_router_update
         card_mod:
           style: |
