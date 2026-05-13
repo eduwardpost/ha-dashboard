@@ -938,8 +938,6 @@ views:
           show_states: true
           colorize_states: true
         graph_span: 24h
-        span:
-          start: day
         series:
           - entity: sensor.inverter_total_power
             transform: 'return x / 1000;' # convert KW to W
