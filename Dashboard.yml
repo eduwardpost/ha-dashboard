@@ -1393,69 +1393,69 @@ views:
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
-    cards:      
+    cards:
       - type: custom:mushroom-chips-card
         alignment: justify
         chips:
           - type: template
-            icon: mdi:docker
+            icon: mdi:kubernetes
             content: >
-              {{ states('sensor.local_containers_running') }} / {{
-              states('sensor.local_container_count') }}
-            icon_color: blue
+              {{ states('sensor.homelab_pods_count') }} pods •
+              {{ states('sensor.homelab_nodes_count') }} nodes
+            icon_color: >
+              {% if is_state('binary_sensor.homelab_cluster_health', 'on') %}green{% else %}red{% endif %}
+            tap_action:
+              action: more-info
+              entity: binary_sensor.homelab_cluster_health
+          - type: template
+            icon: mdi:server-network
+            content: >
+              PVE: {{ states('sensor.node_scarif_virtual_machines_running') }} VMs •
+              {{ states('sensor.node_scarif_containers_running') }} LXC
+            icon_color: >
+              {% if is_state('binary_sensor.node_scarif_status', 'on') %}green{% else %}red{% endif %}
+            tap_action:
+              action: more-info
+              entity: binary_sensor.node_scarif_status
           - type: template
             icon: mdi:backup-restore
             content: '{{ states(''sensor.backup_backup_manager_state'') }}'
             icon_color: >
               {% if states('sensor.backup_backup_manager_state') in ['idle',
               'ready', 'ok'] %}green{% else %}amber{% endif %}
+            tap_action:
+              action: more-info
+              entity: sensor.backup_last_successful_automatic_backup
           - type: template
             icon: mdi:download-network
             content: >
               {{ states('sensor.speedtest_download')|round(0) }}↓ {{
               states('sensor.speedtest_upload')|round(0) }}↑
             icon_color: teal
+            tap_action:
+              action: more-info
+              entity: sensor.speedtest_download
           - type: template
             icon: mdi:update
             content: |
-              {% set updates = [
-                states('update.home_assistant_core_update'),
-                states('update.home_assistant_operating_system_update'),
-                states('update.home_assistant_supervisor_update'),
-                states('update.hacs_update'),
-                states('update.mikrotik_router_update'),
-                states('update.proxmox_ve_update'),
-                states('update.synology_dsm_update'),
-                states('update.synology_nas_dsm_update'),
-                states('update.zigbee2mqtt_update'),
-                states('update.esphome_update'),
-                states('update.z_wave_js_ui_update'),
-                states('update.studio_code_server_update')
-              ] %} {{ updates | select('eq', 'on') | list | count }} pending
+              {% set updates = expand(states.update)
+                | selectattr('state', 'eq', 'on') | list %}
+              {{ updates | count }} pending
             icon_color: >
-              {% set updates = [
-                states('update.home_assistant_core_update'),
-                states('update.home_assistant_operating_system_update'),
-                states('update.home_assistant_supervisor_update'),
-                states('update.hacs_update'),
-                states('update.mikrotik_router_update'),
-                states('update.proxmox_ve_update'),
-                states('update.synology_dsm_update'),
-                states('update.synology_nas_dsm_update'),
-                states('update.zigbee2mqtt_update'),
-                states('update.esphome_update'),
-                states('update.z_wave_js_ui_update'),
-                states('update.studio_code_server_update')
-              ] %} {% if (updates | select('eq', 'on') | list | count) > 0
-              %}amber{% else %}green{% endif %}
+              {% set updates = expand(states.update)
+                | selectattr('state', 'eq', 'on') | list %}
+              {{ 'amber' if updates | count > 0 else 'green' }}
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/homelab
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
               padding: 10px;
+              height: 100%;
             }
             mushroom-template-chip, mushroom-entity-chip {
               margin: 2px !important;
@@ -1463,79 +1463,9 @@ views:
         view_layout:
           grid-column: 1 / 13
       - type: grid
-        columns: 6
+        columns: 10
         square: false
         cards:
-          - type: custom:button-card
-            entity: sensor.prometheus_status
-            name: Prometheus
-            icon: mdi:chart-line
-            show_state: true
-            state:
-              - value: 'up'
-                color: rgb(166, 227, 161)
-              - value: 'down'
-                color: rgb(243, 139, 168)
-              - value: 'pending'
-                color: rgb(245, 180, 29)
-              - value: 'maintenance'
-                color: rgb(11, 58, 227)
-          - type: custom:button-card
-            entity: sensor.loki_status
-            name: Loki
-            icon: mdi:database-search
-            show_state: true
-            state:
-              - value: 'up'
-                color: rgb(166, 227, 161)
-              - value: 'down'
-                color: rgb(243, 139, 168)
-              - value: 'pending'
-                color: rgb(245, 180, 29)
-              - value: 'maintenance'
-                color: rgb(11, 58, 227)
-          - type: custom:button-card
-            entity: sensor.uptime_kuma_status
-            name: Uptime Kuma
-            icon: mdi:heart-pulse
-            show_state: true
-            state:
-              - value: 'up'
-                color: rgb(166, 227, 161)
-              - value: 'down'
-                color: rgb(243, 139, 168)
-              - value: 'pending'
-                color: rgb(245, 180, 29)
-              - value: 'maintenance'
-                color: rgb(11, 58, 227)
-          - type: custom:button-card
-            entity: sensor.alertmanager_status
-            name: Alertmanager
-            icon: mdi:alarm-light
-            show_state: true
-            state:
-              - value: 'up'
-                color: rgb(166, 227, 161)
-              - value: 'down'
-                color: rgb(243, 139, 168)
-              - value: 'pending'
-                color: rgb(245, 180, 29)
-              - value: 'maintenance'
-                color: rgb(11, 58, 227)
-          - type: custom:button-card
-            entity: sensor.postgres_status
-            name: PostgreSQL
-            icon: mdi:database
-            show_state: true
-            state:
-              - value: 'up'
-                color: rgb(166, 227, 161)
-              - value: 'down'
-                color: rgb(243, 139, 168)
-              - value: 'pending'
-                color: rgb(245, 180, 29)
-              - value: 'maintenance'
-                color: rgb(11, 58, 227)
           - type: custom:button-card
             entity: sensor.home_assistant_status
             name: Home Assistant
@@ -1548,54 +1478,503 @@ views:
                 color: rgb(166, 227, 161)
               - operator: default
                 color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: sensor.internet_access_status
+            name: Internet
+            icon: mdi:web
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - operator: default
+                color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: sensor.unifi_controller_status
+            name: UniFi
+            icon: mdi:router-network
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - operator: default
+                color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: sensor.prometheus_status
+            name: Prometheus
+            icon: mdi:chart-line
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.loki_status
+            name: Loki
+            icon: mdi:database-search
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.alertmanager_status
+            name: Alertmanager
+            icon: mdi:alarm-light
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.uptime_kuma_status
+            name: Uptime Kuma
+            icon: mdi:heart-pulse
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.postgres_status
+            name: PostgreSQL
+            icon: mdi:database
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.emqx_mqtt_status
+            name: EMQX
+            icon: mdi:message-fast
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.ad_guard_status
+            name: AdGuard
+            icon: mdi:shield-check
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.ad_guard_k8s_status
+            name: AdGuard K8s
+            icon: mdi:shield-half-full
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.plex_status
+            name: Plex
+            icon: mdi:plex
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.sonarr_status
+            name: Sonarr
+            icon: mdi:television-play
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.radarr_status
+            name: Radarr
+            icon: mdi:movie-open
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.jaeger_status
+            name: Jaeger
+            icon: mdi:chart-scatter-plot
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.step_ca_acme_status
+            name: Step CA
+            icon: mdi:certificate
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.syslog_ng_status
+            name: Syslog-ng
+            icon: mdi:text-box-multiple
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.promtail_status
+            name: Promtail
+            icon: mdi:file-document-arrow-right
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.monitoring_status
+            name: Monitoring
+            icon: mdi:monitor-dashboard
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.vtt_status
+            name: VTT
+            icon: mdi:dice-d20
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
               padding: 8px;
+              height: 100%;
             }
         view_layout:
           grid-column: 1 / 13
       - type: custom:stack-in-card
         cards:
           - type: custom:mushroom-title-card
-            title: Core services
-          - type: entities
-            show_header_toggle: false
-            entities:
-              - sensor.home_assistant_status
-              - sensor.unifi_controller_status
-              - sensor.internet_access_status
-              - sensor.jaeger_status
-              - sensor.syslog_ng_status
-              - sensor.step_ca_acme_status
-              - sensor.ad_guard_status
-              - sensor.emqx_mqtt_status
-              - sensor.plex_status
-              - sensor.sonarr_status
-              - sensor.radarr_status
+            title: K8s Cluster
+            subtitle: >
+              {{ states('sensor.homelab_nodes_count') }} nodes •
+              {{ states('sensor.homelab_pods_count') }} pods
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Node ready status
+                secondary: >
+                  {% set bad = namespace(nodes=[]) %}
+                  {% for n in [1,2,3,4,5] %}
+                    {% set mem = 'binary_sensor.homelab_k8s_' ~ n ~ '_memory_pressure' %}
+                    {% set dsk = 'binary_sensor.homelab_k8s_' ~ n ~ '_disk_pressure' %}
+                    {% set pid = 'binary_sensor.homelab_k8s_' ~ n ~ '_pid_pressure' %}
+                    {% set net = 'binary_sensor.homelab_k8s_' ~ n ~ '_network_unavailable' %}
+                    {% if is_state(mem,'on') or is_state(dsk,'on') or is_state(pid,'on') or is_state(net,'on') %}
+                      {% set bad.nodes = bad.nodes + ['k8s-' ~ n] %}
+                    {% endif %}
+                  {% endfor %}
+                  {% if bad.nodes | length == 0 %}All 5 nodes ready{% else %}Not ready: {{ bad.nodes | join(', ') }}{% endif %}
+                icon: mdi:server-network
+                icon_color: >
+                  {% set bad = namespace(found=false) %}
+                  {% for n in [1,2,3,4,5] %}
+                    {% if is_state('binary_sensor.homelab_k8s_' ~ n ~ '_memory_pressure','on')
+                      or is_state('binary_sensor.homelab_k8s_' ~ n ~ '_disk_pressure','on')
+                      or is_state('binary_sensor.homelab_k8s_' ~ n ~ '_pid_pressure','on')
+                      or is_state('binary_sensor.homelab_k8s_' ~ n ~ '_network_unavailable','on') %}
+                      {% set bad.found = true %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ 'red' if bad.found else 'green' }}
+                tap_action:
+                  action: more-info
+                  entity: binary_sensor.homelab_cluster_health
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.homelab_cluster_health
+                name: Cluster health
+                icon: mdi:kubernetes
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.homelab_pods_count
+                name: Pods
+                icon: mdi:cube-outline
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.homelab_deployments_count
+                name: Deployments
+                icon: mdi:application-cog
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.homelab_statefulsets_count
+                name: StatefulSets
+                icon: mdi:database-cog
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.homelab_daemonsets_count
+                name: DaemonSets
+                icon: mdi:cog-sync
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
+              height: 100%;
             }
         view_layout:
           grid-column: 1 / 5
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Proxmox (Scarif)
+            subtitle: >
+              CPU {{ states('sensor.node_scarif_cpu_used')|float(0)|round(0) }}% •
+              RAM {{ states('sensor.node_scarif_memory_used_percentage')|float(0)|round(0) }}% •
+              Disk {{ states('sensor.node_scarif_disk_used_percentage')|float(0)|round(0) }}%
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.qemu_homeassistant_103_status
+                name: Home Assistant VM
+                icon: mdi:home-assistant
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.lxc_cloud_epost_local_101_status
+                name: Nextcloud LXC
+                icon: mdi:cloud
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.qemu_freepbx_100_status
+                name: FreePBX VM
+                icon: mdi:phone-voip
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.qemu_flight_radar_104_status
+                name: FlightRadar VM
+                icon: mdi:airplane
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.storage_scarif_synology_lun1_disk_used_percentage
+                name: LUN Disk usage
+                icon: mdi:harddisk
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 5 / 9
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Synology NAS
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_cpu_utilization_total
+                name: CPU
+                icon: mdi:cpu-64-bit
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_memory_usage_real
+                name: Memory
+                icon: mdi:memory
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_volume_1_status
+                name: Volume status
+                icon: mdi:harddisk
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_volume_1_volume_used
+                name: Disk used
+                icon: mdi:chart-donut
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_upload_throughput
+                name: Upload
+                icon: mdi:upload-network
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_download_throughput
+                name: Download
+                icon: mdi:download-network
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_temperature
+                name: Temperature
+                icon: mdi:thermometer
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.synology_security_status
+                name: Security status
+                icon: mdi:shield-check
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 9 / 13
       - type: custom:apexcharts-card
         header:
           show: true
-          title: Service latency
+          title: Service latency (12h)
           show_states: true
           colorize_states: true
-        graph_span: 24h
-        span:
-          start: day
+        graph_span: 12h
         series:
           - entity: sensor.home_assistant_response_time
             name: HA
@@ -1626,76 +2005,64 @@ views:
             group_by:
               func: avg
               duration: 15min
+          - entity: sensor.prometheus_response_time
+            name: Prometheus
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.loki_response_time
+            name: Loki
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.unifi_controller_response_time
+            name: UniFi
+            group_by:
+              func: avg
+              duration: 15min
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
+              height: 100%;
             }
         view_layout:
-          grid-column: 5 / 13
-      - type: custom:stack-in-card
-        cards:
-          - type: custom:mushroom-title-card
-            title: PVE VM summary
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: custom:mushroom-entity-card
-                entity: binary_sensor.lxc_cloud_epost_local_101_status
-                name: Nextcloud LXC
-              - type: custom:mushroom-entity-card
-                entity: binary_sensor.qemu_freepbx_100_status
-                name: FreePBX VM
-              - type: custom:mushroom-entity-card
-                entity: binary_sensor.qemu_flight_radar_104_status
-                name: Flight Radar VM
-              - type: custom:mushroom-entity-card
-                entity: sensor.storage_scarif_synology_lun1_disk_used_percentage
-                name: LUN Disk usage
-              # - type: custom:mushroom-entity-card
-              #   entity: sensor.prometheus_memory_usage_percentage
-              #   name: Prometheus RAM
-              # - type: custom:mushroom-entity-card
-              #   entity: sensor.loki_memory_usage_percentage
-              #   name: Loki RAM
-              # - type: custom:mushroom-entity-card
-              #   entity: sensor.postgres_memory_usage_percentage
-              #   name: PostgreSQL RAM
-              # - type: custom:mushroom-entity-card
-              #   entity: sensor.uptime_kuma_memory_usage_percentage
-              #   name: Uptime Kuma RAM
-        card_mod:
-          style: |
-            ha-card {
-              border-radius: 22px;
-              border: 1px solid rgba(180, 190, 254, 0.18);
-              
-              box-shadow: none;
-            }
-        view_layout:
-          grid-column: 1 / 5
+          grid-column: 1 / 9
       - type: custom:stack-in-card
         cards:
           - type: custom:mushroom-title-card
             title: Network core
           - type: grid
-            columns: 2
+            columns: 1
             square: false
             cards:
+              - type: custom:mushroom-template-card
+                entity: device_tracker.mikrotik
+                primary: MikroTik router
+                secondary: >
+                  CPU {{ states('sensor.post_router_cpu_load') }}% •
+                  {{ states('sensor.post_router_temperature') }}°C
+                icon: mdi:router
+                icon_color: >
+                  {% if is_state('device_tracker.mikrotik', 'home') %}green{% else %}red{% endif %}
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
               - type: custom:mushroom-template-card
                 entity: device_tracker.us_24_poe_250w
                 primary: Main PoE switch
                 secondary: >
-                  {{ states('sensor.us_24_poe_250w_state') }} • {{
-                  states('sensor.us_24_poe_250w_temperature') }}
+                  {{ states('sensor.us_24_poe_250w_state') }} • CPU {{
+                  states('sensor.us_24_poe_250w_cpu_utilization') }}% •
+                  {{ states('sensor.us_24_poe_250w_temperature') }}°C
                 icon: mdi:switch
                 icon_color: >
-                  {% if is_state('device_tracker.us_24_poe_250w', 'home')
-                  %}green{% else %}red{% endif %}
+                  {% if is_state('device_tracker.us_24_poe_250w', 'home') %}green{% else %}red{% endif %}
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
               - type: custom:mushroom-template-card
                 entity: device_tracker.garage
                 primary: Garage switch
@@ -1704,8 +2071,22 @@ views:
                   states('sensor.garage_cpu_utilization') }}%
                 icon: mdi:switch
                 icon_color: >
-                  {% if is_state('device_tracker.garage', 'home') %}green{% else
-                  %}red{% endif %}
+                  {% if is_state('device_tracker.garage', 'home') %}green{% else %}red{% endif %}
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-template-card
+                entity: device_tracker.beneden
+                primary: Downstairs switch
+                secondary: >
+                  {{ states('sensor.beneden_state') }} • CPU {{
+                  states('sensor.beneden_cpu_utilization') }}%
+                icon: mdi:switch
+                icon_color: >
+                  {% if is_state('device_tracker.beneden', 'home') %}green{% else %}red{% endif %}
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
               - type: custom:mushroom-template-card
                 entity: device_tracker.boven
                 primary: Upstairs switch
@@ -1714,8 +2095,10 @@ views:
                   states('sensor.boven_cpu_utilization') }}%
                 icon: mdi:switch
                 icon_color: >
-                  {% if is_state('device_tracker.boven', 'home') %}green{% else
-                  %}red{% endif %}
+                  {% if is_state('device_tracker.boven', 'home') %}green{% else %}red{% endif %}
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
               - type: custom:mushroom-template-card
                 entity: device_tracker.zolder
                 primary: Attic switch
@@ -1724,44 +2107,85 @@ views:
                   states('sensor.zolder_cpu_utilization') }}%
                 icon: mdi:switch
                 icon_color: >
-                  {% if is_state('device_tracker.zolder', 'home') %}green{% else
-                  %}red{% endif %}
+                  {% if is_state('device_tracker.zolder', 'home') %}green{% else %}red{% endif %}
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 9 / 13
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Certificates
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - sensor.unifi_controller_certificate_expiry
+              - sensor.step_ca_acme_certificate_expiry
+              - sensor.vtt_certificate_expiry
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 5
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Backup status
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - sensor.backup_backup_manager_state
+              - sensor.backup_last_successful_automatic_backup
+              - sensor.backup_next_scheduled_automatic_backup
+              - sensor.backup_last_attempted_automatic_backup
+              - event.backup_automatic_backup
+              - sensor.samba_backup
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
             }
         view_layout:
           grid-column: 5 / 9
-      - type: entities
-        title: Backup & maintenance
-        show_header_toggle: false
-        entities:
-          - sensor.backup_backup_manager_state
-          - sensor.backup_next_scheduled_automatic_backup
-          - sensor.backup_last_successful_automatic_backup
-          - sensor.backup_last_attempted_automatic_backup
-          - event.backup_automatic_backup
-          - update.home_assistant_core_update
-          - update.home_assistant_operating_system_update
-          - update.home_assistant_supervisor_update
-          - update.hacs_update
-          - update.zigbee2mqtt_update
-          - update.esphome_update
-          - update.z_wave_js_ui_update
-          - update.proxmox_ve_update
-          - update.synology_dsm_update
-          - update.mikrotik_router_update
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Pending updates
+          - type: custom:auto-entities
+            card:
+              type: entities
+              show_header_toggle: false
+            filter:
+              include:
+                - domain: update
+                  state: 'on'
+            sort:
+              method: friendly_name
+            show_empty: false
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
+              height: 100%;
             }
         view_layout:
           grid-column: 9 / 13
