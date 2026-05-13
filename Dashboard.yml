@@ -1127,62 +1127,89 @@ views:
       grid-gap: 12px
       margin: 0
     cards:
-      - type: markdown
-        content: |
-          # Security
-          Physical security, SIEM signals, surveillance and certificates
-        card_mod:
-          style: |
-            ha-card {
-              background: rgba(var(--rgb-card-background-color), 0.72);
-              border: 1px solid rgba(180, 190, 254, 0.18);
-              border-radius: 22px;
-              box-shadow: none;
-              padding: 4px 10px 0 10px;
-            }
-        view_layout:
-          grid-column: 1 / 13
       - type: custom:mushroom-chips-card
         alignment: justify
         chips:
           - type: template
+            icon: mdi:shield-star
+            content: >
+              {% set crit = states('sensor.wazuh_critical_24h')|int(0) %}
+              {% set high = states('sensor.wazuh_high_24h')|int(0) %}
+              {% set alarm = states('alarm_control_panel.alarm') %}
+              {% set nas_warn = is_state('binary_sensor.synology_security_status', 'on') %}
+              {% if crit > 0 or nas_warn %}
+                Posture: Critical
+              {% elif high > 0 or alarm == 'disarmed' %}
+                Posture: Warning
+              {% else %}
+                Posture: Good
+              {% endif %}
+            icon_color: >
+              {% set crit = states('sensor.wazuh_critical_24h')|int(0) %}
+              {% set high = states('sensor.wazuh_high_24h')|int(0) %}
+              {% set alarm = states('alarm_control_panel.alarm') %}
+              {% set nas_warn = is_state('binary_sensor.synology_security_status', 'on') %}
+              {% if crit > 0 or nas_warn %}
+                red
+              {% elif high > 0 or alarm == 'disarmed' %}
+                amber
+              {% else %}
+                green
+              {% endif %}
+            tap_action:
+              action: more-info
+              entity: sensor.siem_security_score
+          - type: template
             icon: mdi:shield-home
-            content: '{{ states(''alarm_control_panel.alarm'') }}'
+            content: Alarm {{ states('alarm_control_panel.alarm') }}
             icon_color: >
               {% if is_state('alarm_control_panel.alarm', 'disarmed') %}red{%
               else %}green{% endif %}
+            tap_action:
+              action: more-info
+              entity: alarm_control_panel.alarm
           - type: template
             icon: mdi:shield-check
             content: SIEM {{ states('sensor.siem_security_score') }}
             icon_color: blue
+            tap_action:
+              action: more-info
+              entity: sensor.siem_security_score
           - type: template
             icon: mdi:alert-octagon
             content: Crit {{ states('sensor.wazuh_critical_24h') }}
             icon_color: >
               {% if states('sensor.wazuh_critical_24h')|int(0) > 0 %}red{% else
               %}green{% endif %}
+            tap_action:
+              action: more-info
+              entity: sensor.wazuh_critical_24h
           - type: template
             icon: mdi:alert
             content: High {{ states('sensor.wazuh_high_24h') }}
             icon_color: >
               {% if states('sensor.wazuh_high_24h')|int(0) > 0 %}amber{% else
               %}green{% endif %}
+            tap_action:
+              action: more-info
+              entity: sensor.wazuh_high_24h
           - type: template
             icon: mdi:nas
             content: >
-              {% if is_state('binary_sensor.synology_security_status', 'on') or
-              is_state('binary_sensor.synology_nas_security_status', 'on') %}
+              {% if is_state('binary_sensor.synology_security_status', 'on') %}
                 NAS warning
               {% else %}
                 NAS OK
               {% endif %}
             icon_color: >
-              {% if is_state('binary_sensor.synology_security_status', 'on') or
-              is_state('binary_sensor.synology_nas_security_status', 'on') %}
+              {% if is_state('binary_sensor.synology_security_status', 'on') %}
                 red
               {% else %}
                 green
               {% endif %}
+            tap_action:
+              action: more-info
+              entity: binary_sensor.synology_security_status
         card_mod:
           style: |
             ha-card {
@@ -1197,6 +1224,108 @@ views:
             }
         view_layout:
           grid-column: 1 / 13
+      - type: custom:auto-entities
+        card:
+          type: grid
+          title: Requires attention
+          columns: 2
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - entity_id: binary_sensor.frontdoor_open
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:door-open
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 72px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+            - entity_id: binary_sensor.synology_security_status
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:shield-alert
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 72px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+            - entity_id: binary_sensor.*tamper*
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:shield-alert
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 72px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+          exclude: []
+        sort:
+          method: friendly_name
+        show_empty: false
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 8px;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 13
       - type: grid
         columns: 4
         square: false
@@ -1204,8 +1333,10 @@ views:
           - type: custom:button-card
             entity: binary_sensor.frontdoor_open
             name: Front door
-            icon: mdi:door-front
+            icon: mdi:door-closed
             show_state: true
+            tap_action:
+              action: more-info
             state:
               - value: 'on'
                 color: rgb(243, 139, 168)
@@ -1216,6 +1347,8 @@ views:
             name: Door motion
             icon: mdi:motion-sensor
             show_state: true
+            tap_action:
+              action: more-info
             state:
               - value: 'on'
                 color: rgb(243, 139, 168)
@@ -1226,36 +1359,145 @@ views:
             name: Backyard motion
             icon: mdi:motion-sensor
             show_state: true
+            tap_action:
+              action: more-info
             state:
               - value: 'on'
                 color: rgb(243, 139, 168)
               - value: 'off'
                 color: rgb(166, 227, 161)
           - type: custom:button-card
-            entity: binary_sensor.g3_flex_motion
-            name: G3 Flex motion
-            icon: mdi:cctv
+            entity: lock.elite
+            name: Front lock
+            icon: mdi:lock
             show_state: true
+            tap_action:
+              action: more-info
             state:
-              - value: 'on'
-                color: rgb(243, 139, 168)
-              - value: 'off'
+              - value: locked
                 color: rgb(166, 227, 161)
+              - value: unlocked
+                color: rgb(243, 139, 168)
+              - operator: default
+                color: rgb(245, 180, 29)
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
               padding: 8px;
+              height: 100%;
             }
         view_layout:
           grid-column: 1 / 13
       - type: custom:stack-in-card
         cards:
           - type: custom:mushroom-title-card
-            title: SIEM / Wazuh
+            title: SIEM / Wazuh Quick Glance
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: IT security posture
+                secondary: >
+                  {% set score = states('sensor.siem_security_score')|int(0) %}
+                  {% set crit = states('sensor.wazuh_critical_24h')|int(0) %}
+                  {% set high = states('sensor.wazuh_high_24h')|int(0) %}
+                  {% if crit > 0 %}
+                    Critical pressure
+                  {% elif high > 0 %}
+                    Elevated pressure
+                  {% elif score >= 80 %}
+                    Healthy
+                  {% else %}
+                    Watch closely
+                  {% endif %}
+                icon: mdi:shield-star
+                icon_color: >
+                  {% set crit = states('sensor.wazuh_critical_24h')|int(0) %}
+                  {% set high = states('sensor.wazuh_high_24h')|int(0) %}
+                  {% if crit > 0 %}
+                    red
+                  {% elif high > 0 %}
+                    amber
+                  {% else %}
+                    green
+                  {% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.siem_security_score
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 16px;
+                      border: 0px;
+                      box-shadow: none;
+                    }
+              - type: custom:mushroom-template-card
+                primary: Threat pressure (24h)
+                secondary: >
+                  C {{ states('sensor.wazuh_critical_24h')|int(0) }} •
+                  H {{ states('sensor.wazuh_high_24h')|int(0) }} •
+                  M {{ states('sensor.wazuh_medium_24h')|int(0) }} •
+                  L {{ states('sensor.wazuh_low_24h')|int(0) }}
+                icon: mdi:alert-decagram
+                icon_color: >
+                  {% if states('sensor.wazuh_critical_24h')|int(0) > 0 %}
+                    red
+                  {% elif states('sensor.wazuh_high_24h')|int(0) > 0 %}
+                    amber
+                  {% else %}
+                    green
+                  {% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.wazuh_critical_24h
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 16px;
+                      border: 0px;
+                      box-shadow: none;
+                    }
+              - type: custom:mushroom-template-card
+                primary: Top rule (24h)
+                secondary: "{{ states('sensor.wazuh_top_rule_24h') }}"
+                icon: mdi:text-box-search
+                icon_color: blue
+                tap_action:
+                  action: more-info
+                  entity: sensor.wazuh_top_rule_24h
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 16px;
+                      border: 0px;
+                      box-shadow: none;
+                    }
+              - type: custom:mushroom-template-card
+                primary: WAN local drops
+                secondary: >
+                  {{ states('sensor.wazuh_wan_local_drops_24h')|int(0) }} drops •
+                  Top src {{ states('sensor.wazuh_top_wan_local_source_ip_24h') }}
+                icon: mdi:wan
+                icon_color: >
+                  {% if states('sensor.wazuh_wan_local_drops_24h')|int(0) > 0 %}
+                    amber
+                  {% else %}
+                    green
+                  {% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.wazuh_wan_local_drops_24h
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 16px;
+                      border: 0px;
+                      box-shadow: none;
+                    }
           - type: entities
             show_header_toggle: false
             entities:
@@ -1265,40 +1507,25 @@ views:
               - sensor.wazuh_high_24h
               - sensor.wazuh_medium_24h
               - sensor.wazuh_low_24h
+              - sensor.wazuh_wan_local_drops_24h
+              - sensor.wazuh_top_wan_local_source_ip_24h
+            card_mod:
+              style: |
+                ha-card {
+                  border-radius: 16px;
+                  border: 0px;
+                  box-shadow: none;
+                }
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
+              height: 100%;
             }
         view_layout:
-          grid-column: 1 / 5
-      - type: custom:stack-in-card
-        cards:
-          - type: custom:mushroom-title-card
-            title: Certificates
-          - type: entities
-            show_header_toggle: false
-            entities:
-              - sensor.home_assistant_certificate_expiry
-              - sensor.unifi_controller_certificate_expiry
-              - sensor.plex_certificate_expiry
-              - sensor.vtt_certificate_expiry
-              - sensor.sonarr_certificate_expiry
-              - sensor.radarr_certificate_expiry
-              - sensor.haproxy_certificate_expiry
-        card_mod:
-          style: |
-            ha-card {
-              border-radius: 22px;
-              border: 1px solid rgba(180, 190, 254, 0.18);
-              
-              box-shadow: none;
-            }
-        view_layout:
-          grid-column: 5 / 9
+          grid-column: 1 / 8
       - type: custom:apexcharts-card
         header:
           show: true
@@ -1319,8 +1546,8 @@ views:
             group_by:
               func: avg
               duration: 15min
-          - entity: sensor.haproxy_response_time
-            name: HAProxy
+          - entity: sensor.step_ca_acme_response_time
+            name: Step CA
             group_by:
               func: avg
               duration: 15min
@@ -1334,11 +1561,11 @@ views:
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
+              height: 100%;
             }
         view_layout:
-          grid-column: 9 / 13
+          grid-column: 8 / 13
       - type: grid
         columns: 2
         square: false
@@ -1348,39 +1575,87 @@ views:
             camera_view: live
             name: Front door live
           - type: picture-entity
-            entity: camera.g3_flex_high_resolution_channel
+            entity: camera.achtertuin_achtertuin
             camera_view: live
-            name: G3 Flex
+            name: Backyard live
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
               overflow: hidden;
+              height: 100%;
             }
         view_layout:
-          grid-column: 1 / 9
-      - type: entities
-        title: Alarm panels
-        show_header_toggle: false
-        entities:
-          - alarm_control_panel.alarm
-          - alarm_control_panel.beneden
-          - alarm_control_panel.boven
-          - switch.synology_surveillance_station_home_mode
-          - switch.synology_nas_surveillance_station_home_mode
+          grid-column: 1 / 8
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Alarm & surveillance modes
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - alarm_control_panel.alarm
+              - alarm_control_panel.beneden
+              - alarm_control_panel.boven
+              - switch.synology_surveillance_station_home_mode
+            card_mod:
+              style: |
+                ha-card {
+                  border-radius: 16px;
+                  border: 0px;
+                  box-shadow: none;
+                }
+          - type: custom:mushroom-title-card
+            title: Pending security updates
+            subtitle: Only update entities that currently need action
+          - type: custom:auto-entities
+            card:
+              type: entities
+              show_header_toggle: false
+              card_mod:
+                style: |
+                  ha-card {
+                    border-radius: 16px;
+                    border: 0px;
+                    box-shadow: none;
+                  }
+            filter:
+              include:
+                - entity_id: update.home_assistant_*
+                  state: 'on'
+                - entity_id: update.tailscale_update
+                  state: 'on'
+                - entity_id: update.wazuh_agent_update
+                  state: 'on'
+                - entity_id: update.grafana_promtail_update
+                  state: 'on'
+                - entity_id: update.synology_dsm_update
+                  state: 'on'
+                - entity_id: update.mikrotik_router_update
+                  state: 'on'
+                - entity_id: update.proxmox_ve_update
+                  state: 'on'
+                - entity_id: update.zigbee2mqtt_update
+                  state: 'on'
+                - entity_id: update.matter_server_update
+                  state: 'on'
+                - entity_id: update.openthread_border_router_update
+                  state: 'on'
+            sort:
+              method: friendly_name
+            show_empty: false
         card_mod:
           style: |
             ha-card {
               border-radius: 22px;
               border: 1px solid rgba(180, 190, 254, 0.18);
-              
               box-shadow: none;
+              height: 100%;
             }
         view_layout:
-          grid-column: 9 / 13
+          grid-column: 8 / 13
   - title: Homelab
     path: homelab
     icon: mdi:server
