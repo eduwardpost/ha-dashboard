@@ -207,9 +207,9 @@ views:
               navigation_path: /ha-dashboard/energy
             state_display: >
               [[[ return `Import
-              ${states['sensor.dsmr_reading_electricity_currently_delivered']?.state
+              ${states['sensor.electricity_meter_power_consumption']?.state
               ?? '-'} KW | Export
-              ${states['sensor.dsmr_reading_electricity_currently_returned']?.state
+              ${states['sensor.electricity_meter_power_production']?.state
               ?? '-'} KW`; ]]]
             styles:
               card:
@@ -300,13 +300,13 @@ views:
                   group_by:
                     func: avg
                     duration: 5min
-                - entity: sensor.dsmr_reading_electricity_currently_delivered
+                - entity: sensor.electricity_meter_power_consumption
                   name: Import
                   type: line
                   group_by:
                     func: avg
                     duration: 5min
-                - entity: sensor.dsmr_reading_electricity_currently_returned
+                - entity: sensor.electricity_meter_power_production
                   name: Export
                   type: line
                   group_by:
@@ -868,13 +868,13 @@ views:
             entity: sensor.inverter_total_power
             icon: mdi:solar-power
           - type: entity
-            entity: sensor.dsmr_reading_electricity_currently_delivered
+            entity: sensor.electricity_meter_power_consumption
             icon: mdi:transmission-tower-import
           - type: entity
-            entity: sensor.dsmr_reading_electricity_currently_returned
+            entity: sensor.electricity_meter_power_production
             icon: mdi:transmission-tower-export
           - type: entity
-            entity: sensor.dsmr_consumption_gas_currently_delivered
+            entity: sensor.gas_meter_gas_consumption
             icon: mdi:fire
           - type: entity
             entity: sensor.dsmr_day_consumption_total_cost
@@ -906,17 +906,17 @@ views:
             min: 0
             max: 6000
           - type: gauge
-            entity: sensor.dsmr_reading_electricity_currently_delivered
+            entity: sensor.electricity_meter_power_consumption
             name: Import
             min: 0
             max: 8
           - type: gauge
-            entity: sensor.dsmr_reading_electricity_currently_returned
+            entity: sensor.electricity_meter_power_production
             name: Export
             min: 0
             max: 8
           - type: gauge
-            entity: sensor.dsmr_consumption_gas_currently_delivered
+            entity: sensor.gas_meter_gas_consumption
             name: Gas
             min: 0
             max: 3
@@ -945,12 +945,12 @@ views:
             group_by:
               func: avg
               duration: 10min
-          - entity: sensor.dsmr_reading_electricity_currently_delivered
+          - entity: sensor.electricity_meter_power_consumption
             name: Import
             group_by:
               func: avg
               duration: 10min
-          - entity: sensor.dsmr_reading_electricity_currently_returned
+          - entity: sensor.electricity_meter_power_production
             name: Export
             group_by:
               func: avg
