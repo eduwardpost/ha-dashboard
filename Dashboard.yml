@@ -916,10 +916,10 @@ views:
             min: 0
             max: 8
           - type: gauge
-            entity: sensor.gas_meter_gas_consumption
+            entity: sensor.meterkast_gas_meter_gas_usage
             name: Gas
             min: 0
-            max: 3
+            max: 1
         card_mod:
           style: |
             ha-card {
@@ -1014,6 +1014,10 @@ views:
                 - 94
                 - 48
                 - 235
+            - entity: sensor.alfen_jk_real_power_sum
+              name: Laadpaal
+              icon: mdi:ev-station
+              color_icon: true
           solar:
             entity: sensor.inverter_total_power
             color_icon: true
