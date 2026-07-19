@@ -1,0 +1,633 @@
+title: Home Operations Cockpit
+views:
+  - title: Command
+    path: command
+    icon: mdi:view-dashboard-edit
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 14px
+      margin: 0
+    cards:
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: template
+            icon: mdi:home-account
+            content: >
+              {% if is_state('group.persons', 'home') %}Home{% else %}Away{% endif %}
+            icon_color: >
+              {% if is_state('group.persons', 'home') %}green{% else %}orange{% endif %}
+            tap_action:
+              action: more-info
+              entity: group.persons
+          - type: template
+            icon: mdi:shield-home
+            content: >
+              {% if is_state('alarm_control_panel.alarm', 'disarmed') %}Disarmed{% else %}Armed{% endif %}
+            icon_color: >
+              {% if is_state('alarm_control_panel.alarm', 'disarmed') %}green{% else %}red{% endif %}
+            tap_action:
+              action: more-info
+              entity: alarm_control_panel.alarm
+          - type: template
+            icon: mdi:lock
+            content: >
+              {% if is_state('lock.elite', 'locked') %}Locked{% else %}Unlocked{% endif %}
+            icon_color: >
+              {% if is_state('lock.elite', 'locked') %}green{% else %}red{% endif %}
+            tap_action:
+              action: toggle
+            hold_action:
+              action: more-info
+            entity: lock.elite
+          - type: entity
+            entity: sensor.inverter_total_power
+            icon: mdi:solar-power
+          - type: entity
+            entity: sensor.oprit_508_sw_battery
+            icon: mdi:car-electric
+          - type: template
+            icon: mdi:ev-station
+            content: >
+              {% if is_state('binary_sensor.oprit_508_sw_battery_charging', 'on') %}Charging{% else %}Idle{% endif %}
+            icon_color: >
+              {% if is_state('binary_sensor.oprit_508_sw_battery_charging', 'on') %}green{% else %}grey{% endif %}
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/energy
+        view_layout:
+          grid-column: 1 / 13
+
+      - type: entity-filter
+        entities:
+          - binary_sensor.frontdoor_open
+          - binary_sensor.front_door_motion
+          - binary_sensor.back_yard_motion_sensor_motion_detection
+          - binary_sensor.oprit_508_sw_battery_charging
+          - update.home_assistant_core_update
+          - update.home_assistant_operating_system_update
+          - update.home_assistant_supervisor_update
+          - update.stellantis_vehicles_update
+          - update.alfen_modbus_update
+        state_filter:
+          - 'on'
+        card:
+          type: entities
+          title: Triage queue
+          show_header_toggle: false
+        show_empty: false
+        view_layout:
+          grid-column: 1 / 7
+
+      - type: entities
+        title: Fast context
+        show_header_toggle: false
+        entities:
+          - group.persons
+          - sensor.inverter_total_power
+          - sensor.electricity_meter_power_consumption
+          - sensor.electricity_meter_power_production
+          - sensor.oprit_508_sw_battery
+          - sensor.oprit_508_sw_autonomy
+          - sensor.alfen_jk_real_power_sum
+          - sensor.home_assistant_status
+        view_layout:
+          grid-column: 7 / 13
+
+      - type: grid
+        title: Performance trends
+        columns: 1
+        square: false
+        cards:
+          - type: history-graph
+            title: Service latency (12h)
+            hours_to_show: 12
+            entities:
+              - sensor.home_assistant_response_time
+              - sensor.unifi_controller_response_time
+              - sensor.internet_access_response_time
+              - sensor.prometheus_response_time
+        view_layout:
+          grid-column: 1 / 13
+
+      - type: grid
+        title: Drill-down workspaces
+        columns: 5
+        square: false
+        cards:
+          - type: button
+            name: Living
+            icon: mdi:sofa
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/living
+          - type: button
+            name: Energy
+            icon: mdi:lightning-bolt
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/energy
+          - type: button
+            name: Security
+            icon: mdi:shield-lock
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/security
+          - type: button
+            name: Homelab
+            icon: mdi:server-network
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/homelab
+          - type: button
+            name: Health
+            icon: mdi:heart-pulse
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/health
+        view_layout:
+          grid-column: 1 / 13
+
+  - title: Living
+    path: living
+    icon: mdi:home-floor-0
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 14px
+      margin: 0
+    cards:
+      - type: grid
+        title: Lighting deck
+        columns: 3
+        square: false
+        cards:
+          - type: tile
+            entity: light.downstairs
+          - type: tile
+            entity: light.living_room_lights
+          - type: tile
+            entity: light.kitchen_lights
+          - type: tile
+            entity: light.hal
+          - type: tile
+            entity: light.kantoor
+          - type: tile
+            entity: light.slaapkamer_plafond
+        view_layout:
+          grid-column: 1 / 8
+
+      - type: entities
+        title: Occupancy and mode
+        show_header_toggle: false
+        entities:
+          - group.persons
+          - input_boolean.guest_mode
+          - input_boolean.vacation_mode
+          - input_boolean.slaap_modus
+          - input_select.mode
+          - input_select.light_scene
+        view_layout:
+          grid-column: 8 / 13
+
+      - type: grid
+        title: Comfort signals
+        columns: 4
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.multisensor_6_air_temperature
+            name: Temp
+            min: 10
+            max: 35
+          - type: gauge
+            entity: sensor.multisensor_6_humidity
+            name: Humidity
+            min: 0
+            max: 100
+          - type: gauge
+            entity: sensor.multisensor_6_carbon_dioxide_co2_level
+            name: CO2
+            min: 350
+            max: 2000
+          - type: gauge
+            entity: sensor.multisensor_6_particulate_matter_2_5
+            name: PM2.5
+            min: 0
+            max: 100
+        view_layout:
+          grid-column: 1 / 13
+
+      - type: entities
+        title: Outdoor and utility
+        show_header_toggle: false
+        entities:
+          - switch.buiten_stekker
+          - light.buiten_stekker
+          - light.buiten_lampen_garage
+          - light.buiten_lampen_oprit
+          - switch.achter_stekker_3
+          - switch.garage_door_pulse_switch
+        view_layout:
+          grid-column: 1 / 7
+
+      - type: weather-forecast
+        entity: weather.forecast_home
+        forecast_type: daily
+        view_layout:
+          grid-column: 7 / 13
+
+  - title: Energy
+    path: energy
+    icon: mdi:lightning-bolt
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 14px
+      margin: 0
+    cards:
+      - type: grid
+        title: Power board
+        columns: 6
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.inverter_total_power
+            name: Solar now
+          - type: tile
+            entity: sensor.electricity_meter_power_consumption
+            name: Grid import
+          - type: tile
+            entity: sensor.electricity_meter_power_production
+            name: Grid export
+          - type: tile
+            entity: sensor.meterkast_gas_meter_gas_usage
+            name: Gas usage
+          - type: tile
+            entity: sensor.oprit_508_sw_battery
+            name: 508 battery
+          - type: tile
+            entity: sensor.alfen_jk_real_power_sum
+            name: Charger power
+        view_layout:
+          grid-column: 1 / 13
+
+      - type: history-graph
+        title: EV and charger trend (24h)
+        hours_to_show: 24
+        entities:
+          - sensor.oprit_508_sw_battery
+          - sensor.oprit_508_sw_autonomy
+          - sensor.oprit_508_sw_battery_charging_rate
+          - sensor.alfen_jk_real_power_sum
+        view_layout:
+          grid-column: 1 / 8
+
+      - type: entities
+        title: Charger control plane (Alfen)
+        show_header_toggle: false
+        entities:
+          - sensor.alfen_jk_mode_3_state
+          - sensor.alfen_jk_car_connected
+          - sensor.alfen_jk_car_charging
+          - sensor.alfen_jk_current_total
+          - sensor.alfen_jk_real_power_sum
+          - sensor.alfen_jk_current_session_wh
+          - sensor.alfen_jk_current_session_duration
+          - number.alfen_jk_max_current_limit_s1
+          - select.alfen_jk_usable_phases1
+        view_layout:
+          grid-column: 8 / 13
+
+      - type: grid
+        title: Charging operations
+        columns: 3
+        square: false
+        cards:
+          - type: button
+            name: Start charging
+            icon: mdi:battery-charging
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.oprit_508_sw_charge_start
+          - type: button
+            name: Stop charging
+            icon: mdi:battery-off
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.oprit_508_sw_charge_stop
+          - type: button
+            name: Wake vehicle
+            icon: mdi:car-connected
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.oprit_508_sw_wakeup
+        view_layout:
+          grid-column: 1 / 13
+
+      - type: entities
+        title: Peugeot 508 telemetry
+        show_header_toggle: false
+        entities:
+          - sensor.oprit_508_sw_battery
+          - sensor.oprit_508_sw_autonomy
+          - sensor.oprit_508_sw_battery_charging_rate
+          - sensor.oprit_508_sw_battery_charging_type
+          - sensor.oprit_508_sw_battery_charging_end
+          - sensor.oprit_508_sw_last_charge
+          - binary_sensor.oprit_508_sw_battery_plugged
+          - binary_sensor.oprit_508_sw_battery_charging
+          - switch.oprit_508_sw_battery_charging_limit
+          - number.oprit_508_sw_battery_charging_limit
+        view_layout:
+          grid-column: 1 / 13
+
+  - title: Security
+    path: security
+    icon: mdi:shield-lock
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 14px
+      margin: 0
+    cards:
+      - type: grid
+        title: Perimeter board
+        columns: 5
+        square: false
+        cards:
+          - type: tile
+            entity: alarm_control_panel.alarm
+            name: Alarm
+          - type: tile
+            entity: lock.elite
+            name: Lock
+          - type: tile
+            entity: binary_sensor.frontdoor_open
+            name: Front door
+          - type: tile
+            entity: binary_sensor.front_door_motion
+            name: Front motion
+          - type: tile
+            entity: binary_sensor.back_yard_motion_sensor_motion_detection
+            name: Backyard motion
+        view_layout:
+          grid-column: 1 / 13
+
+      - type: entity-filter
+        entities:
+          - binary_sensor.frontdoor_open
+          - binary_sensor.front_door_motion
+          - binary_sensor.back_yard_motion_sensor_motion_detection
+        state_filter:
+          - 'on'
+        card:
+          type: entities
+          title: Active events
+          show_header_toggle: false
+        show_empty: false
+        view_layout:
+          grid-column: 1 / 5
+
+      - type: entities
+        title: Response controls
+        show_header_toggle: false
+        entities:
+          - alarm_control_panel.alarm
+          - siren.downstairs_siren
+          - switch.front_door_motion_detection
+          - switch.front_door_in_home_chime
+          - sensor.front_door_last_motion
+          - sensor.front_door_last_ding
+        view_layout:
+          grid-column: 5 / 9
+
+      - type: entities
+        title: Door and lock diagnostics
+        show_header_toggle: false
+        entities:
+          - lock.elite
+          - sensor.front_door_battery
+          - sensor.frontdoor_battery_level
+          - sensor.frontdoor_last_seen
+        view_layout:
+          grid-column: 9 / 13
+
+      - type: grid
+        title: Camera wall
+        columns: 2
+        square: false
+        cards:
+          - type: picture-entity
+            entity: camera.front_door_live_view
+            name: Front door
+            camera_view: live
+          - type: picture-entity
+            entity: camera.achtertuin_achtertuin
+            name: Backyard
+            camera_view: live
+        view_layout:
+          grid-column: 1 / 13
+
+  - title: Homelab
+    path: homelab
+    icon: mdi:server
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 14px
+      margin: 0
+    cards:
+      - type: entity-filter
+        entities:
+          - sensor.home_assistant_status
+          - sensor.internet_access_status
+          - sensor.unifi_controller_status
+          - sensor.prometheus_status
+          - sensor.loki_status
+          - sensor.alertmanager_status
+          - sensor.postgres_status
+          - sensor.emqx_mqtt_status
+          - sensor.ad_guard_status
+          - sensor.step_ca_acme_status
+        state_filter:
+          - 'down'
+          - 'unavailable'
+          - 'unknown'
+        card:
+          type: entities
+          title: Services requiring intervention
+          show_header_toggle: false
+        show_empty: false
+        view_layout:
+          grid-column: 1 / 6
+
+      - type: entities
+        title: Service inventory
+        show_header_toggle: false
+        entities:
+          - sensor.home_assistant_status
+          - sensor.internet_access_status
+          - sensor.unifi_controller_status
+          - sensor.prometheus_status
+          - sensor.loki_status
+          - sensor.alertmanager_status
+          - sensor.postgres_status
+          - sensor.emqx_mqtt_status
+          - sensor.ad_guard_status
+          - sensor.step_ca_acme_status
+        view_layout:
+          grid-column: 6 / 13
+
+      - type: entities
+        title: Kubernetes posture
+        show_header_toggle: false
+        entities:
+          - binary_sensor.homelab_cluster_health
+          - sensor.homelab_nodes_count
+          - sensor.homelab_pods_count
+          - sensor.homelab_deployments_count
+          - sensor.homelab_statefulsets_count
+          - sensor.homelab_daemonsets_count
+          - sensor.homelab_jobs_count
+          - sensor.homelab_ingresses_count
+        view_layout:
+          grid-column: 1 / 6
+
+      - type: entities
+        title: Expiry and recovery
+        show_header_toggle: false
+        entities:
+          - sensor.home_assistant_certificate_expiry
+          - sensor.unifi_controller_certificate_expiry
+          - sensor.internet_access_certificate_expiry
+          - sensor.prometheus_certificate_expiry
+          - sensor.loki_certificate_expiry
+          - sensor.step_ca_acme_certificate_expiry
+          - sensor.backup_backup_manager_state
+          - sensor.backup_last_successful_automatic_backup
+          - sensor.backup_next_scheduled_automatic_backup
+        view_layout:
+          grid-column: 6 / 13
+
+      - type: history-graph
+        title: Latency evidence (12h)
+        hours_to_show: 12
+        entities:
+          - sensor.home_assistant_response_time
+          - sensor.unifi_controller_response_time
+          - sensor.internet_access_response_time
+          - sensor.prometheus_response_time
+          - sensor.loki_response_time
+        view_layout:
+          grid-column: 1 / 13
+
+  - title: Health
+    path: health
+    icon: mdi:heart-pulse
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 14px
+      margin: 0
+    cards:
+      - type: grid
+        title: Daily readiness board
+        columns: 6
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.total_steps
+            icon: mdi:shoe-print
+          - type: tile
+            entity: sensor.sleep_score
+            icon: mdi:sleep
+          - type: tile
+            entity: sensor.body_battery_most_recent
+            icon: mdi:battery-heart
+          - type: tile
+            entity: sensor.resting_heart_rate
+            icon: mdi:heart
+          - type: tile
+            entity: sensor.weight
+            icon: mdi:scale-bathroom
+          - type: tile
+            entity: sensor.garmin_connect_training_readiness
+            icon: mdi:run-fast
+        view_layout:
+          grid-column: 1 / 13
+
+      - type: grid
+        title: Physiological gauges
+        columns: 4
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.sleep_score
+            min: 0
+            max: 100
+          - type: gauge
+            entity: sensor.body_battery_most_recent
+            min: 0
+            max: 100
+          - type: gauge
+            entity: sensor.resting_heart_rate
+            min: 40
+            max: 120
+          - type: gauge
+            entity: sensor.average_spo2
+            min: 80
+            max: 100
+        view_layout:
+          grid-column: 1 / 13
+
+      - type: history-graph
+        title: Weekly performance trend
+        hours_to_show: 168
+        entities:
+          - sensor.total_steps
+          - sensor.sleep_score
+          - sensor.garmin_connect_training_readiness
+        view_layout:
+          grid-column: 1 / 8
+
+      - type: entities
+        title: Detailed metrics
+        show_header_toggle: false
+        entities:
+          - sensor.total_steps
+          - sensor.garmin_connect_weekly_step_average
+          - sensor.total_distance_mtr
+          - sensor.active_time
+          - sensor.sleep_duration
+          - sensor.total_sleep_duration
+          - sensor.resting_heart_rate
+          - sensor.hrv_status
+          - sensor.garmin_connect_hrv_last_night_average
+          - sensor.average_spo2
+          - sensor.weight
+          - sensor.bmi
+          - sensor.body_fat
+          - sensor.garmin_connect_training_readiness
+          - sensor.garmin_connect_training_status
+        view_layout:
+          grid-column: 8 / 13

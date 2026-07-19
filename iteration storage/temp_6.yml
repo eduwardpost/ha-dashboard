@@ -1,11 +1,12 @@
 # =====================================================================
-#  Woning-dashboard — FROM SCRATCH build (2026) — iteratie 3
+#  Woning-dashboard — FROM SCRATCH build (2026) — iteratie 2
 #  Uitsluitend gebouwd op basis van entities.jsonc (geen verzonnen entiteiten).
-#  Stijl: Catppuccin (auto latte/mocha) — kaartranden via theme-variabelen.
-#  DECLUTTER: chip-rijen vervangen door nette `tile`-rasters (rustiger beeld);
-#             alleen de bovenste statusbalk blijft chips.
-#  Woning-view = één blok per kamer met licht/klimaat/media van die ruimte.
-#  Layout: layout-card responsive auto-fit grid (minmax(min(100%,340px),1fr)).
+#  Stijl: Catppuccin (auto latte/mocha) — kaartranden gebruiken theme-variabelen
+#         (var(--divider-color) / var(--ha-card-border-radius)) zodat licht/donker
+#         automatisch meebeweegt. Mushroom + ApexCharts + power-flow-card-plus +
+#         auto-entities + stack-in-card + card-mod + decluttering-card.
+#  Layout: layout-card responsive auto-fit grid (minmax(min(100%,340px),1fr))
+#          → schaalt netjes naar smalle schermen (1 kolom op mobiel).
 #  Weergaven: Overzicht · Woning · Energie · Auto · Beveiliging · Homelab · Gezondheid
 #  Padnamen blijven Engels zodat interne navigatie werkt; titels zijn Nederlands.
 # =====================================================================
@@ -16,13 +17,6 @@ decluttering_templates:
   command_button:
     card:
       type: custom:mushroom-template-card
-      card_mod: &tile
-        style: |
-          ha-card {
-            border-radius: 22px;
-            border: 0px;
-            box-shadow: none;
-          }
       primary: '[[name]]'
       icon: '[[icon]]'
       icon_color: '[[color]]'
@@ -48,7 +42,7 @@ views:
       grid-gap: 12px
       margin: 0
     cards:
-      # ---- Statusbalk (volledige breedte, enige chip-rij) ----------------
+      # ---- Statuschips (volledige breedte) ------------------------------
       - type: custom:mushroom-chips-card
         alignment: center
         view_layout:
@@ -86,15 +80,15 @@ views:
             content: '{{ (states("sensor.inverter_total_power")|float(0)/1000)|round(2) }} kW'
             icon_color: amber
             tap_action:
-              action: navigate
-              navigation_path: /ha-dashboard/energy
+              action: more-info
+              entity: sensor.inverter_total_power
           - type: template
             icon: mdi:transmission-tower
             content: '{{ states("sensor.electricity_meter_power_consumption") }} kW'
             icon_color: blue
             tap_action:
-              action: navigate
-              navigation_path: /ha-dashboard/energy
+              action: more-info
+              entity: sensor.electricity_meter_power_consumption
           - type: template
             icon: mdi:car-electric
             content: '{{ states("sensor.oprit_508_sw_battery") }}%'
@@ -116,8 +110,8 @@ views:
             content: '{{ states("sensor.speedtest_download")|round(0) }}↓'
             icon_color: teal
             tap_action:
-              action: navigate
-              navigation_path: /ha-dashboard/homelab
+              action: more-info
+              entity: sensor.speedtest_download
 
       # ---- Weer -----------------------------------------------------------
       - type: weather-forecast
@@ -126,7 +120,7 @@ views:
         show_forecast: true
         forecast_type: daily
 
-      # ---- Energie (tegels i.p.v. chips) ---------------------------------
+      # ---- Energie (nu & vandaag) ----------------------------------------
       - type: custom:stack-in-card
         card_mod: &cm
           style: |
@@ -138,104 +132,108 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: Energie
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
-                entity: sensor.inverter_total_power
-                name: Zon nu
+            subtitle: Nu & vandaag
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
                 icon: mdi:solar-power
-                color: amber
-              - type: tile
-                card_mod: *tile
-                entity: sensor.electricity_meter_power_consumption
-                name: Van net
+                content: '{{ (states("sensor.inverter_total_power")|float(0)/1000)|round(2) }} kW'
+                icon_color: amber
+              - type: template
+                icon: mdi:white-balance-sunny
+                content: >
+                  {{ (states('sensor.inverter_voor_energy_today')|float(0) +
+                      states('sensor.inverter_achter_energy_today')|float(0))|round(1) }} kWh
+                icon_color: orange
+              - type: template
                 icon: mdi:transmission-tower-import
-                color: blue
-              - type: tile
-                card_mod: *tile
-                entity: sensor.electricity_meter_power_production
-                name: Terug
+                content: '{{ states("sensor.electricity_meter_power_consumption") }} kW'
+                icon_color: blue
+              - type: template
                 icon: mdi:transmission-tower-export
-                color: green
-              - type: tile
-                card_mod: *tile
+                content: '{{ states("sensor.electricity_meter_power_production") }} kW'
+                icon_color: green
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.oprit_508_sw_battery
+                icon: mdi:car-electric
+              - type: entity
                 entity: sensor.alfen_jk_car_charging
-                name: Laadpaal
                 icon: mdi:ev-station
-                color: teal
+              - type: entity
+                entity: sensor.electricity_meter_active_tariff
+                icon: mdi:cash-clock
 
-      # ---- Klimaat --------------------------------------------------------
+      # ---- Klimaat (glance) ----------------------------------------------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
             title: Klimaat
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.multisensor_6_air_temperature
-                name: Woonkamer
                 icon: mdi:sofa
-                color: red
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.multisensor_6_humidity
-                name: Vocht
                 icon: mdi:water-percent
-                color: blue
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.multisensor_6_carbon_dioxide_co2_level
-                name: CO₂
                 icon: mdi:molecule-co2
-                color: green
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_temperature
-                name: Slaapkamer
                 icon: mdi:bed
-                color: red
+              - type: entity
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_carbon_dioxide
+                icon: mdi:molecule-co2
+              - type: entity
+                entity: sensor.tempature_sensor_temperature
+                icon: mdi:thermometer
 
-      # ---- Beveiliging ----------------------------------------------------
+      # ---- Beveiliging (glance) ------------------------------------------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
             title: Beveiliging
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: binary_sensor.frontdoor_open
-                name: Voordeur
                 icon: mdi:door
-                color: blue
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: binary_sensor.front_door_motion
-                name: Beweging
                 icon: mdi:motion-sensor
-                color: amber
-              - type: tile
-                card_mod: *tile
-                entity: sensor.siem_security_score
-                name: SIEM-score
+              - type: entity
+                entity: binary_sensor.back_yard_motion_sensor_motion_detection
+                icon: mdi:motion-sensor
+              - type: template
+                icon: mdi:cctv
+                content: Camera's
+                tap_action:
+                  action: navigate
+                  navigation_path: /ha-dashboard/security
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
                 icon: mdi:shield-check
-                color: green
-              - type: tile
-                card_mod: *tile
-                entity: sensor.wazuh_critical_24h
-                name: Kritiek 24u
+                content: 'SIEM {{ states("sensor.siem_security_score") }}'
+                icon_color: >
+                  {% if states('sensor.siem_security_score')|int(0) > 80 %}green
+                  {% elif states('sensor.siem_security_score')|int(0) > 50 %}amber
+                  {% else %}red{% endif %}
+              - type: template
                 icon: mdi:alert-octagon
-                color: red
+                content: '{{ states("sensor.wazuh_critical_24h") }}'
+                icon_color: red
+              - type: template
+                icon: mdi:alert
+                content: '{{ states("sensor.wazuh_high_24h") }}'
+                icon_color: deep-orange
 
       # ---- Vandaag: afval, zon, pollen -----------------------------------
       - type: custom:stack-in-card
@@ -243,46 +241,36 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: Vandaag
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.afvalinfo_thuis_trash_type_today
-                name: Afval nu
                 icon: mdi:trash-can
-                color: brown
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.afvalinfo_thuis_trash_type_tomorrow
-                name: Afval morgen
                 icon: mdi:trash-can-outline
-                color: brown
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.sun_next_rising
-                name: Zon op
                 icon: mdi:weather-sunset-up
-                color: amber
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.sun_next_setting
-                name: Zon onder
                 icon: mdi:weather-sunset-down
-                color: deep-orange
-              - type: tile
-                card_mod: *tile
+              - type: entity
+                entity: sensor.moon_phase
+                icon: mdi:moon-waning-crescent
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.kleenex_pollen_radar_home_trees_level
-                name: Pollen bomen
                 icon: mdi:tree
-                color: green
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.kleenex_pollen_radar_home_grass_level
-                name: Pollen gras
                 icon: mdi:grass
-                color: light-green
+              - type: entity
+                entity: sensor.kleenex_pollen_radar_home_weeds_level
+                icon: mdi:flower-pollen
 
       # ---- Actieve media --------------------------------------------------
       - type: custom:auto-entities
@@ -347,7 +335,7 @@ views:
               duration: 10min
 
   # ===================================================================
-  #  2 · WONING  (één blok per kamer)
+  #  2 · WONING  (compacte per-kamer status + klimaat)
   # ===================================================================
   - title: Woning
     path: home
@@ -360,278 +348,152 @@ views:
       grid-gap: 12px
       margin: 0
     cards:
-      # ---- Woonkamer -----------------------------------------------------
+      # ---- Kamerstatus (tik = schakelen, vasthouden = details) -----------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
-            title: Woonkamer
-          - type: tile
-            card_mod: *tile
-            entity: light.living_room_lights
-            name: Plafond
-            icon: mdi:sofa
-            features:
-              - type: light-brightness
-          - type: tile
-            card_mod: *tile
-            entity: light.schilderij
-            name: Schilderij
-            icon: mdi:image-frame
-            features:
-              - type: light-brightness
+            title: Kamerstatus
+            subtitle: Tik om te schakelen · vasthouden voor details
           - type: grid
             columns: 2
             square: false
             cards:
-              - type: tile
-                card_mod: *tile
-                entity: sensor.multisensor_6_air_temperature
-                name: Temp
-                icon: mdi:thermometer
-                color: red
-              - type: tile
-                card_mod: *tile
-                entity: sensor.multisensor_6_humidity
-                name: Vocht
-                icon: mdi:water-percent
-                color: blue
-              - type: tile
-                card_mod: *tile
-                entity: sensor.multisensor_6_carbon_dioxide_co2_level
-                name: CO₂
-                icon: mdi:molecule-co2
-                color: green
-              - type: tile
-                card_mod: *tile
-                entity: binary_sensor.multisensor_6_motion_detection
-                name: Beweging
-                icon: mdi:motion-sensor
-                color: amber
-          - type: custom:mushroom-media-player-card
-            card_mod: *tile
-            entity: media_player.tv_samsung_7_series_55
-            name: TV
-            use_media_info: true
+              - type: custom:mushroom-template-card
+                primary: Woonkamer
+                secondary: '{{ states("sensor.multisensor_6_air_temperature") }}°C'
+                icon: mdi:sofa
+                icon_color: '{{ "amber" if is_state("light.living_room_lights","on") else "disabled" }}'
+                entity: light.living_room_lights
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                badge_icon: '{{ "mdi:motion-sensor" if is_state("binary_sensor.multisensor_6_motion_detection","on") else "" }}'
+                badge_color: blue
+              - type: custom:mushroom-template-card
+                primary: Keuken
+                secondary: '{{ "Aan" if is_state("light.kitchen_lights","on") else "Uit" }}'
+                icon: mdi:countertop
+                icon_color: '{{ "amber" if is_state("light.kitchen_lights","on") else "disabled" }}'
+                entity: light.kitchen_lights
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+              - type: custom:mushroom-template-card
+                primary: Eetkamer
+                secondary: '{{ "Aan" if is_state("light.eetkamer","on") else "Uit" }}'
+                icon: mdi:table-chair
+                icon_color: '{{ "amber" if is_state("light.eetkamer","on") else "disabled" }}'
+                entity: light.eetkamer
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+              - type: custom:mushroom-template-card
+                primary: Hal
+                secondary: '{{ "Aan" if is_state("light.hal","on") else "Uit" }}'
+                icon: mdi:coat-rack
+                icon_color: '{{ "amber" if is_state("light.hal","on") else "disabled" }}'
+                entity: light.hal
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+              - type: custom:mushroom-template-card
+                primary: Kantoor
+                secondary: '{{ "Aan" if is_state("light.kantoor","on") else "Uit" }}'
+                icon: mdi:desk
+                icon_color: '{{ "amber" if is_state("light.kantoor","on") else "disabled" }}'
+                entity: light.kantoor
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+              - type: custom:mushroom-template-card
+                primary: Slaapkamer
+                secondary: '{{ states("sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_temperature") }}°C'
+                icon: mdi:bed
+                icon_color: '{{ "amber" if is_state("light.slaapkamer_plafond","on") else "disabled" }}'
+                entity: light.slaapkamer_plafond
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                badge_icon: '{{ "mdi:motion-sensor" if is_state("binary_sensor.slaapkamer_beweging_occupancy","on") else "" }}'
+                badge_color: blue
 
-      # ---- Keuken --------------------------------------------------------
-      - type: custom:stack-in-card
-        card_mod: *cm
-        cards:
-          - type: custom:mushroom-title-card
-            title: Keuken
-          - type: tile
-            card_mod: *tile
-            entity: light.kitchen_lights
-            name: Keuken
-            icon: mdi:countertop
-            features:
-              - type: light-brightness
-          - type: tile
-            card_mod: *tile
-            entity: light.keuken_boven
-            name: Bovenkastjes
-            icon: mdi:led-strip-variant
-            features:
-              - type: light-brightness
-          - type: custom:mushroom-media-player-card
-            card_mod: *tile
-            entity: media_player.keuken_speaker
-            name: Speaker
-            use_media_info: true
-
-      # ---- Eetkamer ------------------------------------------------------
-      - type: custom:stack-in-card
-        card_mod: *cm
-        cards:
-          - type: custom:mushroom-title-card
-            title: Eetkamer
-          - type: tile
-            card_mod: *tile
-            entity: light.eetkamer
-            name: Eettafel
-            icon: mdi:table-chair
-            features:
-              - type: light-brightness
-
-      # ---- Hal & overloop ------------------------------------------------
-      - type: custom:stack-in-card
-        card_mod: *cm
-        cards:
-          - type: custom:mushroom-title-card
-            title: Hal & overloop
-          - type: tile
-            card_mod: *tile
-            entity: light.hal
-            name: Hal
-            icon: mdi:coat-rack
-            features:
-              - type: light-brightness
-          - type: tile
-            card_mod: *tile
-            entity: light.downstairs
-            name: Beneden
-            icon: mdi:stairs
-            features:
-              - type: light-brightness
-
-      # ---- Kantoor -------------------------------------------------------
-      - type: custom:stack-in-card
-        card_mod: *cm
-        cards:
-          - type: custom:mushroom-title-card
-            title: Kantoor
-          - type: tile
-            card_mod: *tile
-            entity: light.kantoor
-            name: Kantoor
-            icon: mdi:desk
-            features:
-              - type: light-brightness
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
-                entity: sensor.kantoor_power_switch_electric_consumption_w_2
-                name: Verbruik
-                icon: mdi:flash
-                color: yellow
-              - type: tile
-                card_mod: *tile
-                entity: media_player.office_speaker
-                name: Speaker
-                icon: mdi:speaker
-                color: indigo
-          - type: custom:mushroom-media-player-card
-            card_mod: *tile
-            entity: media_player.office_speaker
-            name: Speaker
-            use_media_info: true
-
-      # ---- Slaapkamer ----------------------------------------------------
-      - type: custom:stack-in-card
-        card_mod: *cm
-        cards:
-          - type: custom:mushroom-title-card
-            title: Slaapkamer
-          - type: tile
-            card_mod: *tile
-            entity: light.slaapkamer_plafond
-            name: Plafond
-            icon: mdi:ceiling-light
-            features:
-              - type: light-brightness
-          - type: tile
-            card_mod: *tile
-            entity: light.slaapkamer_hoek
-            name: Hoeklamp
-            icon: mdi:floor-lamp
-            features:
-              - type: light-brightness
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
-                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_temperature
-                name: Temp
-                icon: mdi:thermometer
-                color: red
-              - type: tile
-                card_mod: *tile
-                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_humidity
-                name: Vocht
-                icon: mdi:water-percent
-                color: blue
-              - type: tile
-                card_mod: *tile
-                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_carbon_dioxide
-                name: CO₂
-                icon: mdi:molecule-co2
-                color: green
-              - type: tile
-                card_mod: *tile
-                entity: binary_sensor.slaapkamer_beweging_occupancy
-                name: Beweging
-                icon: mdi:motion-sensor
-                color: amber
-          - type: custom:mushroom-media-player-card
-            card_mod: *tile
-            entity: media_player.bedroom
-            name: Slaapkamer
-            use_media_info: true
-
-      # ---- Buiten & stekkers ---------------------------------------------
+      # ---- Buiten & stekkers (compact) -----------------------------------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
             title: Buiten & stekkers
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
                 entity: light.buiten_lampen_oprit
-                name: Oprit
                 icon: mdi:coach-lamp
-                color: amber
-              - type: tile
-                card_mod: *tile
+                icon_color: '{{ "amber" if is_state("light.buiten_lampen_oprit","on") else "disabled" }}'
+                content: Oprit
+                tap_action:
+                  action: toggle
+              - type: template
                 entity: light.buiten_lampen_garage
-                name: Garage
                 icon: mdi:coach-lamp
-                color: amber
-              - type: tile
-                card_mod: *tile
+                icon_color: '{{ "amber" if is_state("light.buiten_lampen_garage","on") else "disabled" }}'
+                content: Garage
+                tap_action:
+                  action: toggle
+              - type: template
                 entity: switch.buiten_stekker
-                name: Stekker buiten
                 icon: mdi:power-socket-eu
-                color: blue
-              - type: tile
-                card_mod: *tile
+                icon_color: '{{ "blue" if is_state("switch.buiten_stekker","on") else "disabled" }}'
+                content: Stekker
+                tap_action:
+                  action: toggle
+              - type: template
                 entity: switch.kerst_stekker_4
-                name: Kerstverlichting
                 icon: mdi:string-lights
-                color: green
+                icon_color: '{{ "green" if is_state("switch.kerst_stekker_4","on") else "disabled" }}'
+                content: Kerst
+                tap_action:
+                  action: toggle
 
-      # ---- Roombot -------------------------------------------------------
+      # ---- Klimaat & luchtkwaliteit --------------------------------------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
-            title: Roombot
-          - type: custom:mushroom-vacuum-card
-            entity: vacuum.roombot
-            icon: mdi:robot-vacuum
-            commands:
-              - start
-              - pause
-              - stop
-              - return_home
-              - locate
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
-                entity: sensor.roombot_battery_level
-                name: Accu
-                icon: mdi:battery
-                color: green
-              - type: tile
-                card_mod: *tile
-                entity: sensor.roombot_total_missions
-                name: Beurten
-                icon: mdi:counter
-                color: blue
+            title: Klimaat & lucht
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.multisensor_6_air_temperature
+                icon: mdi:thermometer
+              - type: entity
+                entity: sensor.multisensor_6_humidity
+                icon: mdi:water-percent
+              - type: entity
+                entity: sensor.multisensor_6_illuminance
+                icon: mdi:brightness-5
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_temperature
+                icon: mdi:thermometer
+              - type: entity
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_humidity
+                icon: mdi:water-percent
+              - type: entity
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_carbon_dioxide
+                icon: mdi:molecule-co2
+              - type: entity
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_pm2_5
+                icon: mdi:blur
 
-      # ---- Klimaattrend (grafiek, volle breedte) -------------------------
+      # ---- Klimaattrend (grafiek) ----------------------------------------
       - type: custom:apexcharts-card
         view_layout:
           grid-column: 1 / -1
@@ -673,6 +535,56 @@ views:
               func: avg
               duration: 15min
 
+      # ---- Stofzuiger ----------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Roombot
+          - type: custom:mushroom-vacuum-card
+            entity: vacuum.roombot
+            icon: mdi:robot-vacuum
+            commands:
+              - start
+              - pause
+              - stop
+              - return_home
+              - locate
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.roombot_battery_level
+                icon: mdi:battery
+              - type: entity
+                entity: binary_sensor.roombot_bin_full
+                icon: mdi:delete-alert
+              - type: entity
+                entity: sensor.roombot_total_missions
+                icon: mdi:counter
+
+      # ---- Media ---------------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Media
+          - type: custom:mushroom-media-player-card
+            entity: media_player.tv_samsung_7_series_55
+            name: TV woonkamer
+            use_media_info: true
+          - type: custom:mushroom-media-player-card
+            entity: media_player.keuken_speaker
+            name: Keuken speaker
+            use_media_info: true
+          - type: custom:mushroom-media-player-card
+            entity: media_player.office_speaker
+            name: Kantoor speaker
+            use_media_info: true
+          - type: custom:mushroom-media-player-card
+            entity: media_player.bedroom
+            name: Slaapkamer
+            use_media_info: true
+
   # ===================================================================
   #  3 · ENERGIE
   # ===================================================================
@@ -687,8 +599,8 @@ views:
       grid-gap: 12px
       margin: 0
     cards:
-      # ---- Energiestroom (verdeling) — fossil% verwijderd zodat de vier
-      #      verbruikers (Laadpaal/Kantoor/Servers/Netwerk) blijven passen.
+      # ---- Energiestroom (verdeling) -------------------------------------
+      #  Verbruikers zichtbaar: Laadpaal (EV) + Kantoor eerst, dan Servers/Netwerk.
       - type: custom:power-flow-card-plus
         card_mod: *cm
         entities:
@@ -705,6 +617,11 @@ views:
             color_icon: true
           home:
             color_icon: true
+          fossil_fuel_percentage:
+            entity: sensor.co2_signal_grid_fossil_fuel_percentage
+            color_value: false
+            color_icon: true
+            state_type: percentage
           individual:
             - entity: sensor.alfen_jk_real_power_sum
               name: Laadpaal
@@ -725,74 +642,75 @@ views:
               name: Netwerk
               icon: mdi:access-point-network
               color_icon: true
-              calculate_flow_rate: true
 
-      # ---- Zon & opbrengst (tegels) --------------------------------------
+      # ---- Zon & opbrengst -----------------------------------------------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
             title: Zon & opbrengst
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:solar-power
+                content: >
+                  {{ (states('sensor.inverter_voor_energy_today')|float(0) +
+                      states('sensor.inverter_achter_energy_today')|float(0))|round(1) }} kWh
+                icon_color: amber
+              - type: template
+                icon: mdi:calendar-month
+                content: >
+                  {{ (states('sensor.inverter_voor_energy_this_month')|float(0) +
+                      states('sensor.inverter_achter_energy_this_month')|float(0))|round(0) }} kWh
+                icon_color: orange
+              - type: template
+                icon: mdi:cash
+                content: >
+                  €{{ (states('sensor.inverter_voor_income_today')|float(0) +
+                      states('sensor.inverter_achter_income_today')|float(0))|round(2) }}
+                icon_color: green
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.inverter_voor
-                name: Nu voor
                 icon: mdi:solar-panel
-                color: amber
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.inverter_achter
-                name: Nu achter
                 icon: mdi:solar-panel-large
-                color: amber
-              - type: tile
-                card_mod: *tile
-                entity: sensor.inverter_voor_energy_today
-                name: Vandaag voor
-                icon: mdi:white-balance-sunny
-                color: orange
-              - type: tile
-                card_mod: *tile
-                entity: sensor.inverter_achter_energy_today
-                name: Vandaag achter
-                icon: mdi:white-balance-sunny
-                color: orange
-              - type: tile
-                card_mod: *tile
-                entity: sensor.inverter_voor_income_today
-                name: Opbrengst voor
-                icon: mdi:cash
-                color: green
-              - type: tile
-                card_mod: *tile
-                entity: sensor.inverter_achter_income_today
-                name: Opbrengst achter
-                icon: mdi:cash
-                color: green
+              - type: entity
+                entity: sensor.electricity_meter_active_tariff
+                icon: mdi:transmission-tower
 
-      # ---- Meterstanden (nette lijst) ------------------------------------
-      - type: entities
-        title: Meterstanden
+      # ---- Meterstanden --------------------------------------------------
+      - type: custom:stack-in-card
         card_mod: *cm
-        entities:
-          - entity: sensor.electricity_meter_energy_consumption_tarif_1
-            name: Verbruik dal
-          - entity: sensor.electricity_meter_energy_consumption_tarif_2
-            name: Verbruik normaal
-          - entity: sensor.electricity_meter_energy_production_tarif_1
-            name: Teruglevering dal
-          - entity: sensor.electricity_meter_energy_production_tarif_2
-            name: Teruglevering normaal
-          - entity: sensor.electricity_meter_active_tariff
-            name: Actief tarief
-          - entity: sensor.gas_meter_gas_consumption
-            name: Gas totaal
-          - entity: sensor.dsmr_gas_used
-            name: Gas (DSMR)
+        cards:
+          - type: custom:mushroom-title-card
+            title: Meterstanden
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.electricity_meter_energy_consumption_tarif_1
+                icon: mdi:weather-night
+              - type: entity
+                entity: sensor.electricity_meter_energy_consumption_tarif_2
+                icon: mdi:weather-sunny
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.electricity_meter_energy_production_tarif_1
+                icon: mdi:transmission-tower-export
+              - type: entity
+                entity: sensor.electricity_meter_energy_production_tarif_2
+                icon: mdi:transmission-tower-export
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.gas_meter_gas_consumption
+                icon: mdi:fire
+              - type: entity
+                entity: sensor.dsmr_gas_used
+                icon: mdi:meter-gas
 
       # ---- Laadpaal (Alfen) ----------------------------------------------
       - type: custom:stack-in-card
@@ -800,34 +718,28 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: Laadpaal
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.alfen_jk_car_connected
-                name: Verbonden
                 icon: mdi:ev-plug-type2
-                color: blue
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.alfen_jk_car_charging
-                name: Laden
                 icon: mdi:battery-charging
-                color: green
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.alfen_jk_real_power_sum
-                name: Vermogen
                 icon: mdi:flash
-                color: amber
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.alfen_jk_current_session_wh
-                name: Sessie
                 icon: mdi:counter
-                color: teal
+              - type: entity
+                entity: sensor.alfen_jk_current_session_duration
+                icon: mdi:timer
+              - type: entity
+                entity: sensor.alfen_jk_board_temperature
+                icon: mdi:thermometer
           - type: custom:mushroom-number-card
             entity: number.alfen_jk_max_current_limit_s1
             name: Max. laadstroom
@@ -837,7 +749,7 @@ views:
             name: Fasegebruik
             icon: mdi:sine-wave
 
-      # ---- Netkwaliteit --------------------------------------------------
+      # ---- Netkwaliteit (normale kolombreedte, niet full-width) ----------
       - type: entities
         title: Netkwaliteit
         card_mod: *cm
@@ -910,97 +822,57 @@ views:
       grid-gap: 12px
       margin: 0
     cards:
-      # ---- Accu & brandstof — snelle balken (%, met actieradius km) ------
-      - type: custom:stack-in-card
-        view_layout:
-          grid-column: 1 / -1
-        card_mod: *cm
-        cards:
-          - type: custom:mushroom-template-card
-            primary: Accu
-            secondary: >
-              {{ states('sensor.oprit_508_sw_battery') }}% ·
-              {{ states('sensor.oprit_508_sw_autonomy') }} km actieradius
-            icon: mdi:battery-high
-            icon_color: >
-              {% if states('sensor.oprit_508_sw_battery')|int(0) > 50 %}green
-              {% elif states('sensor.oprit_508_sw_battery')|int(0) > 20 %}amber
-              {% else %}red{% endif %}
-            multiline_secondary: true
-            card_mod:
-              style: |
-                ha-card {
-                  border: none;
-                  background: linear-gradient(to right,
-                    rgba(var(--rgb-green), 0.22) {{ states('sensor.oprit_508_sw_battery')|int(0) }}%,
-                    rgba(var(--rgb-green), 0.0) {{ states('sensor.oprit_508_sw_battery')|int(0) }}%);
-                }
-          - type: custom:mushroom-template-card
-            primary: Brandstof
-            secondary: >
-              {{ states('sensor.oprit_508_sw_fuel') }}% ·
-              {{ states('sensor.oprit_508_sw_fuel_autonomy') }} km actieradius
-            icon: mdi:gas-station
-            icon_color: >
-              {% if states('sensor.oprit_508_sw_fuel')|int(0) > 50 %}green
-              {% elif states('sensor.oprit_508_sw_fuel')|int(0) > 20 %}amber
-              {% else %}red{% endif %}
-            multiline_secondary: true
-            card_mod:
-              style: |
-                ha-card {
-                  border: none;
-                  background: linear-gradient(to right,
-                    rgba(var(--rgb-amber), 0.22) {{ states('sensor.oprit_508_sw_fuel')|int(0) }}%,
-                    rgba(var(--rgb-amber), 0.0) {{ states('sensor.oprit_508_sw_fuel')|int(0) }}%);
-                }
-
-      # ---- Status (tegels) -----------------------------------------------
+      # ---- Status --------------------------------------------------------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
-            title: Status
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+            title: Peugeot 508 SW
+            subtitle: Status
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:battery-high
+                content: '{{ states("sensor.oprit_508_sw_battery") }}%'
+                icon_color: >
+                  {% if states('sensor.oprit_508_sw_battery')|int(0) > 50 %}green{% else %}amber{% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.oprit_508_sw_battery
+              - type: entity
+                entity: sensor.oprit_508_sw_autonomy
+                icon: mdi:map-marker-distance
+              - type: entity
+                entity: sensor.oprit_508_sw_fuel
+                icon: mdi:gas-station
+              - type: entity
+                entity: sensor.oprit_508_sw_fuel_autonomy
+                icon: mdi:map-marker-path
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: binary_sensor.oprit_508_sw_doors
-                name: Deuren
                 icon: mdi:car-door
-                color: blue
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: binary_sensor.oprit_508_sw_battery_plugged
-                name: Stekker
                 icon: mdi:ev-plug-type2
-                color: teal
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: binary_sensor.oprit_508_sw_battery_charging
-                name: Laden
                 icon: mdi:battery-charging
-                color: green
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: binary_sensor.oprit_508_sw_preconditioning
-                name: Klimaat
                 icon: mdi:air-conditioner
-                color: cyan
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.oprit_508_sw_mileage
-                name: Km-stand
                 icon: mdi:counter
-                color: grey
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.oprit_508_sw_temperature
-                name: Buiten
                 icon: mdi:thermometer
-                color: red
+              - type: entity
+                entity: sensor.oprit_508_sw_command_status
+                icon: mdi:information-outline
 
       # ---- Bediening (alleen ondersteunde commando's) --------------------
       - type: custom:stack-in-card
@@ -1134,7 +1006,7 @@ views:
                 duration: 5min
 
   # ===================================================================
-  #  5 · BEVEILIGING
+  #  5 · BEVEILIGING  (geen arm-paneel; camera's als losse snapshots)
   # ===================================================================
   - title: Beveiliging
     path: security
@@ -1147,39 +1019,29 @@ views:
       grid-gap: 12px
       margin: 0
     cards:
-      # ---- Status & slot -------------------------------------------------
+      # ---- Status & slot (compacte read-out) -----------------------------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
             title: Status
-          - type: custom:mushroom-template-card
-            card_mod: *tile
-            entity: alarm_control_panel.alarm
-            primary: Alarm
-            secondary: >
-              {% if states('alarm_control_panel.alarm').startswith('armed') %}Ingeschakeld{% else %}Uitgeschakeld{% endif %}
-            icon: mdi:shield-home
-            icon_color: >
-              {% if states('alarm_control_panel.alarm').startswith('armed') %}green{% else %}red{% endif %}
-            tap_action:
-              action: more-info
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:shield-home
+                content: >
+                  {% if states('alarm_control_panel.alarm').startswith('armed') %}Ingeschakeld{% else %}Uit{% endif %}
+                icon_color: >
+                  {% if states('alarm_control_panel.alarm').startswith('armed') %}green{% else %}red{% endif %}
+                tap_action:
+                  action: more-info
+                  entity: alarm_control_panel.alarm
+              - type: entity
                 entity: sensor.elite_temperature
-                name: Temp slot
                 icon: mdi:thermometer
-                color: red
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: binary_sensor.elite_battery
-                name: Batterij slot
                 icon: mdi:battery
-                color: green
           - type: custom:mushroom-lock-card
             entity: lock.elite
             name: Voordeurslot
@@ -1190,46 +1052,28 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: Deuren & beweging
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: binary_sensor.frontdoor_open
-                name: Voordeur
                 icon: mdi:door
-                color: blue
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: binary_sensor.front_door_motion
-                name: Voordeur beweging
                 icon: mdi:motion-sensor
-                color: amber
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: binary_sensor.front_door_ding
-                name: Aanbellen
                 icon: mdi:bell-ring
-                color: purple
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: binary_sensor.back_yard_motion_sensor_motion_detection
-                name: Achtertuin
                 icon: mdi:motion-sensor
-                color: amber
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: binary_sensor.multisensor_6_motion_detection
-                name: Woonkamer
                 icon: mdi:motion-sensor
-                color: amber
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: binary_sensor.slaapkamer_beweging_occupancy
-                name: Slaapkamer
                 icon: mdi:motion-sensor
-                color: amber
 
       # ---- Deurbel (Ring) ------------------------------------------------
       - type: entities
@@ -1252,7 +1096,7 @@ views:
         title: Camera's
         view_layout:
           grid-column: 1 / -1
-      # ---- Camera's — losse snapshots ------------------------------------
+      # ---- Camera's — losse snapshots (laden betrouwbaarder dan in stack)
       - type: picture-entity
         entity: camera.voordeur_voordeur
         name: Voordeur
@@ -1290,70 +1134,42 @@ views:
         camera_view: auto
         aspect_ratio: '16:9'
 
-      # ---- SIEM / Wazuh (gekleurde tegels) -------------------------------
+      # ---- SIEM / Wazuh --------------------------------------------------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
             title: Beveiligingsmonitoring
-          - type: custom:mushroom-template-card
-            card_mod: *tile
-            entity: sensor.siem_security_score
-            primary: SIEM-score
-            secondary: '{{ states("sensor.siem_security_score") }}'
-            icon: mdi:shield-check
-            icon_color: >
-              {% if states('sensor.siem_security_score')|int(0) > 80 %}green
-              {% elif states('sensor.siem_security_score')|int(0) > 50 %}amber
-              {% else %}red{% endif %}
-            tap_action:
-              action: more-info
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.wazuh_critical_24h
-                primary: Kritiek
-                secondary: '{{ states("sensor.wazuh_critical_24h") }}'
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:shield-check
+                content: '{{ states("sensor.siem_security_score") }}'
+                icon_color: >
+                  {% if states('sensor.siem_security_score')|int(0) > 80 %}green
+                  {% elif states('sensor.siem_security_score')|int(0) > 50 %}amber
+                  {% else %}red{% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.siem_security_score
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
                 icon: mdi:alert-octagon
-                icon_color: >
-                  {% if states('sensor.wazuh_critical_24h')|int(0) > 0 %}red{% else %}green{% endif %}
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.wazuh_high_24h
-                primary: Hoog
-                secondary: '{{ states("sensor.wazuh_high_24h") }}'
+                content: 'Kritiek {{ states("sensor.wazuh_critical_24h") }}'
+                icon_color: red
+              - type: template
                 icon: mdi:alert
-                icon_color: >
-                  {% if states('sensor.wazuh_high_24h')|int(0) > 0 %}deep-orange{% else %}green{% endif %}
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.wazuh_medium_24h
-                primary: Middel
-                secondary: '{{ states("sensor.wazuh_medium_24h") }}'
+                content: 'Hoog {{ states("sensor.wazuh_high_24h") }}'
+                icon_color: deep-orange
+              - type: template
                 icon: mdi:alert-outline
+                content: 'Middel {{ states("sensor.wazuh_medium_24h") }}'
                 icon_color: amber
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.wazuh_low_24h
-                primary: Laag
-                secondary: '{{ states("sensor.wazuh_low_24h") }}'
+              - type: template
                 icon: mdi:information
+                content: 'Laag {{ states("sensor.wazuh_low_24h") }}'
                 icon_color: blue
-                layout: vertical
-                tap_action:
-                  action: more-info
           - type: markdown
             content: >
               **Top-regel (24u):** {{ states('sensor.wazuh_top_rule_24h') }}
@@ -1428,127 +1244,30 @@ views:
       grid-gap: 12px
       margin: 0
     cards:
-      # ---- Diensten — visuele health-grid (groen = up / rood = down) -----
-      - type: custom:stack-in-card
-        view_layout:
-          grid-column: 1 / -1
-        card_mod: *cm
-        cards:
-          - type: custom:mushroom-title-card
-            title: Diensten
-            subtitle: Groen = online · rood = offline
-          - type: grid
-            columns: 3
-            square: false
-            cards:
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.home_assistant_status
-                primary: Home Assistant
-                icon: mdi:home-assistant
-                icon_color: '{{ "green" if is_state("sensor.home_assistant_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.internet_access_status
-                primary: Internet
-                icon: mdi:web
-                icon_color: '{{ "green" if is_state("sensor.internet_access_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.ad_guard_status
-                primary: AdGuard
-                icon: mdi:shield-check
-                icon_color: '{{ "green" if is_state("sensor.ad_guard_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.unifi_controller_status
-                primary: UniFi
-                icon: mdi:access-point-network
-                icon_color: '{{ "green" if is_state("sensor.unifi_controller_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.plex_status
-                primary: Plex
-                icon: mdi:plex
-                icon_color: '{{ "green" if is_state("sensor.plex_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.sonarr_status
-                primary: Sonarr
-                icon: mdi:television-classic
-                icon_color: '{{ "green" if is_state("sensor.sonarr_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.radarr_status
-                primary: Radarr
-                icon: mdi:movie-open
-                icon_color: '{{ "green" if is_state("sensor.radarr_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.postgres_status
-                primary: PostgreSQL
-                icon: mdi:database
-                icon_color: '{{ "green" if is_state("sensor.postgres_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.prometheus_status
-                primary: Prometheus
-                icon: mdi:fire
-                icon_color: '{{ "green" if is_state("sensor.prometheus_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.loki_status
-                primary: Loki
-                icon: mdi:text-box-search
-                icon_color: '{{ "green" if is_state("sensor.loki_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.jaeger_status
-                primary: Jaeger
-                icon: mdi:chart-timeline
-                icon_color: '{{ "green" if is_state("sensor.jaeger_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
-              - type: custom:mushroom-template-card
-                card_mod: *tile
-                entity: sensor.monitoring_status
-                primary: Monitoring
-                icon: mdi:monitor-dashboard
-                icon_color: '{{ "green" if is_state("sensor.monitoring_status","up") else "red" }}'
-                layout: vertical
-                tap_action:
-                  action: more-info
+      # ---- Diensten (Uptime Kuma) ----------------------------------------
+      - type: custom:auto-entities
+        card:
+          type: entities
+          title: Diensten
+          card_mod: *cm
+        card_param: entities
+        filter:
+          include:
+            - entity_id: sensor.home_assistant_status
+            - entity_id: sensor.plex_status
+            - entity_id: sensor.sonarr_status
+            - entity_id: sensor.radarr_status
+            - entity_id: sensor.unifi_controller_status
+            - entity_id: sensor.internet_access_status
+            - entity_id: sensor.ad_guard_status
+            - entity_id: sensor.prometheus_status
+            - entity_id: sensor.loki_status
+            - entity_id: sensor.jaeger_status
+            - entity_id: sensor.postgres_status
+            - entity_id: sensor.monitoring_status
+            - entity_id: sensor.uptime_kuma_status
+        sort:
+          method: state
 
       # ---- Responstijden kritieke diensten -------------------------------
       - type: entities
@@ -1563,6 +1282,8 @@ views:
             name: AdGuard
           - entity: sensor.unifi_controller_response_time
             name: UniFi
+          - entity: sensor.technitium_k8s_dns_response_time
+            name: DNS (k8s)
           - entity: sensor.plex_response_time
             name: Plex
           - entity: sensor.sonarr_response_time
@@ -1625,38 +1346,39 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: Kubernetes
-          - type: custom:mushroom-template-card
-            entity: binary_sensor.homelab_cluster_health
-            primary: Clusterstatus
-            secondary: >
-              {{ 'Gezond' if is_state('binary_sensor.homelab_cluster_health','on') else 'Probleem' }}
-            icon: mdi:heart-pulse
-            icon_color: >
-              {{ 'green' if is_state('binary_sensor.homelab_cluster_health','on') else 'red' }}
-            tap_action:
-              action: more-info
-          - type: grid
-            columns: 3
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:heart-pulse
+                content: >
+                  {{ 'Gezond' if is_state('binary_sensor.homelab_cluster_health','on') else 'Probleem' }}
+                icon_color: >
+                  {{ 'green' if is_state('binary_sensor.homelab_cluster_health','on') else 'red' }}
+                tap_action:
+                  action: more-info
+                  entity: binary_sensor.homelab_cluster_health
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.homelab_nodes_count
-                name: Nodes
                 icon: mdi:server
-                color: blue
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.homelab_pods_count
-                name: Pods
                 icon: mdi:cube-outline
-                color: teal
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.homelab_deployments_count
-                name: Deploys
                 icon: mdi:rocket-launch
-                color: purple
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.homelab_statefulsets_count
+                icon: mdi:database
+              - type: entity
+                entity: sensor.homelab_daemonsets_count
+                icon: mdi:animation
+              - type: entity
+                entity: sensor.homelab_ingresses_count
+                icon: mdi:network-outline
 
       # ---- Proxmox -------------------------------------------------------
       - type: entities
@@ -1702,34 +1424,22 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: DNS (Technitium)
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.technitium_epost_home_arpa_technitiumdns_total_queries_technitium_epost_home_arpa
-                name: Queries
                 icon: mdi:dns
-                color: blue
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.technitium_epost_home_arpa_technitiumdns_blocked_queries_technitium_epost_home_arpa
-                name: Geblokkeerd
                 icon: mdi:cancel
-                color: red
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.technitium_epost_home_arpa_technitiumdns_cached_entries_technitium_epost_home_arpa
-                name: Cache
                 icon: mdi:database
-                color: teal
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.technitium_epost_home_arpa_technitiumdns_clients_technitium_epost_home_arpa
-                name: Clients
                 icon: mdi:account-network
-                color: purple
 
       # ---- Netwerk (UniFi) -----------------------------------------------
       - type: entities
@@ -1755,28 +1465,17 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: Internet
-          - type: grid
-            columns: 3
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.speedtest_download
-                name: Download
                 icon: mdi:download
-                color: green
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.speedtest_upload
-                name: Upload
                 icon: mdi:upload
-                color: blue
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.speedtest_ping
-                name: Ping
                 icon: mdi:timer
-                color: amber
           - type: custom:mushroom-entity-card
             entity: input_button.run_speedtest
             name: Nieuwe test
@@ -1811,7 +1510,7 @@ views:
               duration: 1h
 
   # ===================================================================
-  #  7 · GEZONDHEID (Garmin)
+  #  7 · GEZONDHEID (Garmin) — compacter, stappen minder prominent
   # ===================================================================
   - title: Gezondheid
     path: health
@@ -1824,125 +1523,84 @@ views:
       grid-gap: 12px
       margin: 0
     cards:
-      # ---- Vandaag (tegels; stappen bewust minder prominent) -------------
+      # ---- Vandaag: activiteit + body battery + vitals (compact) ---------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
             title: Vandaag
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
-                entity: sensor.total_steps
-                name: Stappen
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
                 icon: mdi:shoe-print
-                color: grey
-              - type: tile
-                card_mod: *tile
+                content: '{{ states("sensor.total_steps") }}/{{ states("sensor.daily_step_goal") }}'
+                icon_color: >
+                  {% if states('sensor.total_steps')|int(0) >= states('sensor.daily_step_goal')|int(1) %}green{% else %}blue{% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.total_steps
+              - type: entity
                 entity: sensor.garmin_connect_intensity_minutes
-                name: Intensiteit
                 icon: mdi:run-fast
-                color: green
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.active_kilocalories
-                name: Calorieën
                 icon: mdi:fire
-                color: deep-orange
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.floors_ascended
-                name: Verdiepingen
                 icon: mdi:stairs-up
-                color: teal
-              - type: tile
-                card_mod: *tile
-                entity: sensor.body_battery_most_recent
-                name: Body Battery
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
                 icon: mdi:battery-heart-variant
-                color: green
-              - type: tile
-                card_mod: *tile
+                content: '{{ states("sensor.body_battery_most_recent") }}'
+                icon_color: >
+                  {% if states('sensor.body_battery_most_recent')|int(0) > 50 %}green{% else %}amber{% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.body_battery_most_recent
+              - type: entity
                 entity: sensor.avg_stress_level
-                name: Stress
                 icon: mdi:emoticon-neutral
-                color: amber
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.average_spo2
-                name: SpO₂
                 icon: mdi:lungs
-                color: cyan
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.resting_heart_rate
-                name: Rusthartslag
                 icon: mdi:heart-pulse
-                color: red
 
-      # ---- Training & herstel (tegels) -----------------------------------
+      # ---- Training & herstel + HRV (compacte chips) ---------------------
       - type: custom:stack-in-card
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
             title: Training & herstel
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.garmin_connect_training_readiness
-                name: Gereedheid
                 icon: mdi:arm-flex
-                color: green
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.garmin_connect_recovery_time
-                name: Herstel
                 icon: mdi:sleep
-                color: blue
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.garmin_connect_vo2_max
-                name: VO₂ max
                 icon: mdi:heart-flash
-                color: red
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.garmin_connect_fitness_age
-                name: Fitheidsleeftijd
                 icon: mdi:calendar-heart
-                color: purple
-              - type: tile
-                card_mod: *tile
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
                 entity: sensor.hrv_status
-                name: HRV-status
                 icon: mdi:sine-wave
-                color: teal
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.garmin_connect_hrv_last_night_average
-                name: HRV nacht
                 icon: mdi:heart-pulse
-                color: pink
-              - type: tile
-                card_mod: *tile
+              - type: entity
                 entity: sensor.max_heart_rate
-                name: Max hartslag
                 icon: mdi:heart
-                color: red
-              - type: tile
-                card_mod: *tile
-                entity: sensor.garmin_connect_training_status
-                name: Trainingsstatus
-                icon: mdi:run
-                color: indigo
 
-      # ---- Slaap vannacht ------------------------------------------------
+      # ---- Slaap vannacht (compact) --------------------------------------
       - type: entities
         title: Slaap vannacht
         card_mod: *cm
@@ -1960,7 +1618,7 @@ views:
           - entity: sensor.garmin_connect_wake_time
             name: Wektijd
 
-      # ---- Lichaamssamenstelling -----------------------------------------
+      # ---- Lichaamssamenstelling (kerncijfers) ---------------------------
       - type: entities
         title: Lichaamssamenstelling
         card_mod: *cm
@@ -2031,7 +1689,7 @@ views:
               func: avg
               duration: 1d
 
-      # ---- Stappen (7d) — klein, onderaan, niet full-width ---------------
+      # ---- Stappen (7d) — minder prominent, onderaan & niet full-width ---
       - type: custom:apexcharts-card
         card_mod: *cm
         header:

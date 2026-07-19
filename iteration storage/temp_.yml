@@ -1,0 +1,3905 @@
+# =====================================================================
+#  Woning-dashboard — iteratie 2 (2026) — Nederlandstalig
+#  Weergaven: Overzicht · Woning · Energie · Auto · Beveiliging · Homelab · Gezondheid
+#  Stijl: Catppuccin-geïnspireerd, 22px radius, subtiele randen,
+#  Mushroom + button-card + ApexCharts + power-flow-card-plus.
+#  Nieuwe hardware: Peugeot 508 SW (PHEV) + Alfen laadpaal.
+#  Best practices toegevoegd: modi/scènes-bediening, conditionele
+#  kaarten (tonen alleen wanneer relevant), buiten-condities strip.
+# =====================================================================
+title: Woning
+decluttering_templates:
+  # Kleine vierkante actietegel (helpers, scènes, snelle drukknoppen)
+  quick_button:
+    card:
+      type: custom:button-card
+      entity: '[[entity]]'
+      name: '[[name]]'
+      icon: '[[icon]]'
+      tap_action:
+        action: '[[action]]'
+      show_state: false
+      styles:
+        card:
+          - border-radius: 16px
+          - padding: 10px 12px
+          - height: 64px
+        icon:
+          - width: 20px
+        name:
+          - font-size: 13px
+          - font-weight: 600
+  # Opdrachttegel die een service aanroept (bijv. button.press voor de auto)
+  command_button:
+    card:
+      type: custom:button-card
+      entity: '[[entity]]'
+      name: '[[name]]'
+      icon: '[[icon]]'
+      tap_action:
+        action: call-service
+        service: '[[service]]'
+        target:
+          entity_id: '[[entity]]'
+      show_state: false
+      styles:
+        card:
+          - border-radius: 16px
+          - padding: 10px 12px
+          - height: 64px
+        icon:
+          - width: 20px
+        name:
+          - font-size: 12px
+          - font-weight: 600
+
+views:
+  # ===================================================================
+  #  OVERZICHT
+  # ===================================================================
+  - title: Overzicht
+    path: overview
+    icon: mdi:view-dashboard
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # Statuschips — snel overzicht
+      - type: custom:mushroom-chips-card
+        alignment: center
+        chips:
+          - icon: mdi:home-account
+            type: template
+            content: >
+              {% if is_state('group.persons', 'home') %}Thuis{% else %}Weg{%
+              endif %}
+            icon_color: >
+              {% if is_state('group.persons', 'home') %}green{% else %}amber{%
+              endif %}
+            tap_action:
+              action: more-info
+              entity: group.persons
+          - icon: mdi:shield-home
+            type: template
+            tap_action:
+              entity: alarm_control_panel.alarm
+              action: more-info
+            content: |
+              {% if is_state('alarm_control_panel.alarm', 'armed_away')
+                    or is_state('alarm_control_panel.alarm', 'armed_home')
+                    or is_state('alarm_control_panel.alarm', 'armed_night') %}
+                Ingeschakeld
+              {% else %}
+                Uitgeschakeld
+              {% endif %}
+            icon_color: |
+              {% if is_state('alarm_control_panel.alarm', 'armed_away')
+                    or is_state('alarm_control_panel.alarm', 'armed_home')
+                    or is_state('alarm_control_panel.alarm', 'armed_night') %}
+                green
+              {% else %}
+                red
+              {% endif %}
+          - icon: mdi:lock
+            type: template
+            tap_action:
+              entity: lock.elite
+              action: more-info
+            content: >
+              {% if is_state('lock.elite', 'locked') %}Vergrendeld{% else
+              %}Ontgrendeld{% endif %}
+            icon_color: >
+              {% if is_state('lock.elite', 'locked') %}green{% else %}red{%
+              endif %}
+          - icon: mdi:solar-power
+            type: template
+            tap_action:
+              entity: sensor.inverter_total_power
+              action: more-info
+            content: '{{ states(''sensor.inverter_total_power'') }} W'
+            icon_color: yellow
+          - icon: mdi:car-electric
+            type: template
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/car
+            content: >
+              {{ states('sensor.oprit_508_sw_battery') }}% · {{
+              states('sensor.oprit_508_sw_autonomy') }}
+            icon_color: >
+              {% if is_state('binary_sensor.oprit_508_sw_battery_charging',
+              'on') %}blue{% elif
+              states('sensor.oprit_508_sw_battery')|int(0) < 20 %}red{% else
+              %}green{% endif %}
+          - icon: mdi:download-network
+            type: template
+            content: >
+              {{ states('sensor.speedtest_download')|round(0) }} / {{
+              states('sensor.speedtest_upload')|round(0) }}
+            icon_color: blue
+          - icon: mdi:update
+            type: template
+            content: |
+              {% set updates = expand(states.update)
+                | selectattr('state', 'eq', 'on') | list %}
+              {{ updates | count }} updates
+            icon_color: >
+              {% set updates = expand(states.update)
+                | selectattr('state', 'eq', 'on') | list %}
+              {{ 'amber' if updates | count > 0 else 'green' }}
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/homelab
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Categorienavigatie
+      - type: grid
+        columns: 4
+        square: false
+        cards:
+          - type: custom:button-card
+            entity: alarm_control_panel.alarm
+            name: Beveiliging
+            icon: mdi:shield-home
+            show_state: true
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/security
+            styles:
+              card:
+                - border-radius: 22px
+                - padding: 18px 12px
+                - border: 1px solid rgba(180, 190, 254, 0.18)
+              icon:
+                - width: 34px
+              name:
+                - font-size: 17px
+                - font-weight: 600
+              state:
+                - font-size: 14px
+            state:
+              - value: disarmed
+                color: rgb(243, 139, 168)
+              - value: armed_home
+                color: rgb(166, 227, 161)
+              - value: armed_away
+                color: rgb(137, 180, 250)
+              - value: armed_night
+                color: rgb(203, 166, 247)
+          - type: custom:button-card
+            entity: input_boolean.current_light_state
+            name: Woning
+            icon: mdi:sofa
+            show_state: false
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/home
+            styles:
+              card:
+                - border-radius: 22px
+                - padding: 18px 12px
+                - border: 1px solid rgba(180, 190, 254, 0.18)
+              icon:
+                - width: 34px
+              name:
+                - font-size: 17px
+                - font-weight: 600
+            color: rgb(203, 166, 247)
+          - type: custom:button-card
+            entity: sensor.inverter_total_power
+            name: Energie
+            icon: mdi:lightning-bolt
+            show_state: true
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/energy
+            styles:
+              card:
+                - border-radius: 22px
+                - padding: 18px 12px
+                - border: 1px solid rgba(180, 190, 254, 0.18)
+              icon:
+                - width: 34px
+              name:
+                - font-size: 17px
+                - font-weight: 600
+              state:
+                - font-size: 14px
+            color: rgb(245, 224, 94)
+          - type: custom:button-card
+            entity: sensor.oprit_508_sw_battery
+            name: Auto
+            icon: mdi:car-electric
+            show_state: true
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/car
+            state_display: >
+              [[[ return `${states['sensor.oprit_508_sw_battery']?.state ??
+              '-'}% · ${states['sensor.oprit_508_sw_autonomy']?.state ??
+              '-'}`; ]]]
+            styles:
+              card:
+                - border-radius: 22px
+                - padding: 18px 12px
+                - border: 1px solid rgba(180, 190, 254, 0.18)
+              icon:
+                - width: 34px
+              name:
+                - font-size: 17px
+                - font-weight: 600
+              state:
+                - font-size: 13px
+            color: rgb(137, 180, 250)
+        view_layout:
+          grid-column: 1 / 13
+
+      # Scène-keuze + read-only modi (modi worden automatisch gezet)
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Scène & modi
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:mushroom-select-card
+                entity: input_select.light_scene
+                name: Lichtscène
+                icon: mdi:palette
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-template-card
+                entity: input_select.mode
+                primary: Woningmodus
+                secondary: '{{ states(''input_select.mode'') }}'
+                icon: mdi:home-switch
+                icon_color: blue
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-template-card
+                primary: Actieve modi
+                secondary: >
+                  {% set ns = namespace(m=[]) %}
+                  {% if is_state('input_boolean.guest_mode','on') %}{% set ns.m = ns.m + ['Gasten'] %}{% endif %}
+                  {% if is_state('input_boolean.vacation_mode','on') %}{% set ns.m = ns.m + ['Vakantie'] %}{% endif %}
+                  {% if is_state('input_boolean.slaap_modus','on') %}{% set ns.m = ns.m + ['Slaap'] %}{% endif %}
+                  {% if is_state('input_boolean.dark_mode','on') %}{% set ns.m = ns.m + ['Donker'] %}{% endif %}
+                  {{ ns.m | join(', ') if ns.m | length > 0 else 'Geen actief' }}
+                icon: mdi:home-automation
+                icon_color: >
+                  {% if is_state('input_boolean.guest_mode','on')
+                    or is_state('input_boolean.vacation_mode','on')
+                    or is_state('input_boolean.slaap_modus','on')
+                    or is_state('input_boolean.dark_mode','on') %}green{% else %}grey{% endif %}
+                tap_action:
+                  action: none
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Conditioneel: verschijnt alleen wanneer de auto is aangesloten
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.oprit_508_sw_battery_plugged
+            state: 'on'
+        card:
+          type: custom:mushroom-chips-card
+          alignment: justify
+          chips:
+            - type: template
+              icon: mdi:ev-station
+              content: >
+                Auto laadt · {{ states('sensor.alfen_jk_real_power_sum') }} W
+              icon_color: blue
+              tap_action:
+                action: navigate
+                navigation_path: /ha-dashboard/car
+            - type: entity
+              entity: sensor.oprit_508_sw_battery
+              icon: mdi:battery-charging
+            - type: entity
+              entity: sensor.oprit_508_sw_battery_charging_end
+              icon: mdi:clock-end
+            - type: entity
+              entity: sensor.alfen_jk_current_session_wh
+              icon: mdi:counter
+          card_mod:
+            style: |
+              ha-card {
+                border-radius: 22px;
+                border: 1px solid rgba(137, 180, 250, 0.45);
+                box-shadow: none;
+                padding: 10px;
+              }
+              mushroom-template-chip, mushroom-entity-chip {
+                margin: 2px !important;
+              }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Weer + kalender + afvalinzameling
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - show_current: true
+            show_forecast: true
+            type: weather-forecast
+            entity: weather.forecast_home
+            forecast_type: daily
+          - type: custom:calendar-card-pro
+            entities:
+              - calendar.afvalinfo_thuis_calendar
+              - calendar.kyokushin_karate
+              - calendar.persoonlijk
+          - type: entities
+            title: Afvalinzameling
+            entities:
+              - entity: sensor.afvalinfo_thuis_trash_type_today
+                name: Vandaag
+              - entity: sensor.afvalinfo_thuis_trash_type_tomorrow
+                name: Morgen
+              - entity: sensor.afvalinfo_thuis_restafval_2
+                name: Restafval
+              - entity: sensor.afvalinfo_thuis_papier_2
+                name: Papier
+              - entity: sensor.afvalinfo_thuis_gft
+                name: GFT
+        view_layout:
+          grid-column: 1 / 13
+
+      # Buiten & condities — zon, maan, pollen
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Buiten & condities
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.sun_next_rising
+                name: Zon op
+                icon: mdi:weather-sunset-up
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.sun_next_setting
+                name: Zon onder
+                icon: mdi:weather-sunset-down
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.moon_phase
+                name: Maanfase
+                icon: mdi:moon-waning-crescent
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-template-card
+                entity: sensor.kleenex_pollen_radar_home_trees_level
+                primary: Bomen
+                secondary: '{{ states(''sensor.kleenex_pollen_radar_home_trees_level'') }}'
+                icon: mdi:tree
+                icon_color: >
+                  {% set v = states('sensor.kleenex_pollen_radar_home_trees')|int(0) %}
+                  {% if v > 48 %}red{% elif v > 12 %}amber{% else %}green{% endif %}
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-template-card
+                entity: sensor.kleenex_pollen_radar_home_grass_level
+                primary: Gras
+                secondary: '{{ states(''sensor.kleenex_pollen_radar_home_grass_level'') }}'
+                icon: mdi:grass
+                icon_color: >
+                  {% set v = states('sensor.kleenex_pollen_radar_home_grass')|int(0) %}
+                  {% if v > 48 %}red{% elif v > 12 %}amber{% else %}green{% endif %}
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-template-card
+                entity: sensor.kleenex_pollen_radar_home_weeds_level
+                primary: Onkruid
+                secondary: '{{ states(''sensor.kleenex_pollen_radar_home_weeds_level'') }}'
+                icon: mdi:sprout
+                icon_color: >
+                  {% set v = states('sensor.kleenex_pollen_radar_home_weeds')|int(0) %}
+                  {% if v > 48 %}red{% elif v > 12 %}amber{% else %}green{% endif %}
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Live vermogen + snelacties + vereist aandacht
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: grid
+            title: Live vermogen
+            columns: 1
+            square: false
+            cards:
+              - type: custom:apexcharts-card
+                header:
+                  show: true
+                  show_states: true
+                  colorize_states: true
+                graph_span: 12h
+                now:
+                  show: true
+                series:
+                  - entity: sensor.inverter_total_power
+                    transform: 'return x / 1000;'
+                    name: Zon
+                    type: line
+                    group_by:
+                      func: avg
+                      duration: 5min
+                  - entity: sensor.electricity_meter_power_consumption
+                    name: Import
+                    type: line
+                    group_by:
+                      func: avg
+                      duration: 5min
+                  - entity: sensor.electricity_meter_power_production
+                    name: Export
+                    type: line
+                    group_by:
+                      func: avg
+                      duration: 5min
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 22px;
+                      border: 1px solid rgba(180, 190, 254, 0.18);
+                      box-shadow: none;
+                    }
+          - type: grid
+            title: Snelacties
+            columns: 2
+            square: false
+            cards:
+              - type: custom:decluttering-card
+                template: quick_button
+                variables:
+                  - entity: input_boolean.start_ha_morning
+                  - name: Ochtend
+                  - icon: mdi:weather-sunset-up
+                  - action: toggle
+              - type: custom:decluttering-card
+                template: quick_button
+                variables:
+                  - entity: input_boolean.start_ha_night_routine
+                  - name: Nacht
+                  - icon: mdi:weather-night
+                  - action: toggle
+              - type: custom:button-card
+                entity: vacuum.roombot
+                name: Stofzuiger starten
+                icon: mdi:robot-vacuum
+                tap_action:
+                  action: call-service
+                  service: vacuum.start
+                  target:
+                    entity_id: vacuum.roombot
+                show_state: false
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 64px
+                  icon:
+                    - width: 20px
+                  name:
+                    - font-size: 13px
+                    - font-weight: 600
+              - type: custom:button-card
+                entity: input_button.run_speedtest
+                name: Speedtest
+                icon: mdi:speedometer
+                tap_action:
+                  action: call-service
+                  service: input_button.press
+                  target:
+                    entity_id: input_button.run_speedtest
+                show_state: false
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 64px
+                  icon:
+                    - width: 20px
+                  name:
+                    - font-size: 13px
+                    - font-weight: 600
+          - type: custom:auto-entities
+            card:
+              type: grid
+              title: Vereist aandacht
+              columns: 2
+              square: false
+            card_param: cards
+            filter:
+              include:
+                - entity_id: binary_sensor.*low_battery*
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:battery-alert
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+                - entity_id: binary_sensor.*replace_battery*
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:battery-alert-variant-outline
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+                - entity_id: binary_sensor.*tamper*
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:shield-alert
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+                - entity_id: binary_sensor.*over_load*
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:flash-alert
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+                - entity_id: binary_sensor.*warnings
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:alert
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 70, 70, 0.60)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 70, 70)
+                - domain: update
+                  state: 'on'
+                  options:
+                    type: custom:button-card
+                    entity: this.entity_id
+                    icon: mdi:update
+                    show_name: true
+                    show_state: true
+                    tap_action:
+                      action: more-info
+                    styles:
+                      card:
+                        - border-radius: 16px
+                        - padding: 10px 12px
+                        - height: 70px
+                        - border-width: 1px
+                        - border-style: solid
+                        - border-color: rgba(220, 160, 60, 0.55)
+                      name:
+                        - font-size: 12px
+                        - font-weight: 600
+                      state:
+                        - font-size: 10px
+                        - opacity: 0.75
+                      icon:
+                        - color: rgb(220, 160, 60)
+              exclude: []
+            sort:
+              method: friendly_name
+            show_empty: false
+        view_layout:
+          grid-column: 1 / 13
+
+  # ===================================================================
+  #  WONING
+  # ===================================================================
+  - title: Woning
+    path: home
+    icon: mdi:sofa
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # Statuschips woning
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: template
+            icon: mdi:lightbulb-group
+            content: >
+              {{ states.light | selectattr('state','eq','on') | list | count }} lampen aan
+            icon_color: >
+              {{ 'amber' if (states.light | selectattr('state','eq','on') | list | count) > 0 else 'grey' }}
+          - type: entity
+            entity: sensor.tempature_sensor_temperature
+            icon: mdi:thermometer
+          - type: entity
+            entity: sensor.tempature_sensor_humidity
+            icon: mdi:water-percent
+          - type: entity
+            entity: sensor.multisensor_6_carbon_dioxide_co2_level
+            icon: mdi:molecule-co2
+          - type: template
+            icon: mdi:television
+            content: >
+              {{ states.media_player | selectattr('state','eq','playing') | list | count }} spelen
+            icon_color: >
+              {{ 'blue' if (states.media_player | selectattr('state','eq','playing') | list | count) > 0 else 'grey' }}
+          - type: template
+            icon: mdi:robot-vacuum
+            content: '{{ states(''vacuum.roombot'') }}'
+            icon_color: >
+              {% if is_state('vacuum.roombot','cleaning') %}blue{% elif is_state('vacuum.roombot','error') %}red{% else %}grey{% endif %}
+            tap_action:
+              action: more-info
+              entity: vacuum.roombot
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Verlichting
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Verlichting
+            subtitle: Tik om te schakelen, houd vast voor bediening
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:mushroom-light-card
+                entity: light.downstairs
+                name: Beneden
+                show_brightness_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.living_room_lights
+                name: Woonkamer
+                show_brightness_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.kitchen_lights
+                name: Keuken
+                show_brightness_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.eetkamer
+                name: Eetkamer
+                show_brightness_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.schilderij
+                name: Schilderij
+                show_brightness_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.hal
+                name: Hal
+                show_brightness_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.kantoor
+                name: Kantoor
+                show_brightness_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.keuken_boven
+                name: Keuken boven
+                show_brightness_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.slaapkamer_plafond
+                name: Slaapkamer
+                show_brightness_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.buiten_lampen_oprit
+                name: Oprit
+                show_brightness_control: false
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.buiten_lampen_garage
+                name: Garage buiten
+                show_brightness_control: false
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-light-card
+                entity: light.buiten_stekker
+                name: Buitenstekker
+                show_brightness_control: false
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 7
+
+      # Klimaat / binnencondities
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Klimaat
+            subtitle: Binnencondities
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.tempature_sensor_temperature
+                name: Woonkamer temp
+                icon: mdi:thermometer
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.tempature_sensor_humidity
+                name: Woonkamer vocht
+                icon: mdi:water-percent
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_temperature
+                name: Slaapkamer temp
+                icon: mdi:thermometer-lines
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_carbon_dioxide
+                name: Slaapkamer CO₂
+                icon: mdi:molecule-co2
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.multisensor_6_air_temperature
+                name: Multisensor temp
+                icon: mdi:thermometer
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.multisensor_6_carbon_dioxide_co2_level
+                name: CO₂
+                icon: mdi:molecule-co2
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.multisensor_6_particulate_matter_2_5
+                name: PM2.5
+                icon: mdi:blur
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.multisensor_6_humidity
+                name: Multisensor vocht
+                icon: mdi:water-percent
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 7 / 13
+
+      # Media
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Media
+          - type: grid
+            columns: 1
+            square: false
+            cards:
+              - type: custom:mushroom-media-player-card
+                entity: media_player.tv_samsung_7_series_55
+                name: Woonkamer TV
+                use_media_info: true
+                media_controls:
+                  - play_pause_stop
+                  - previous
+                  - next
+                volume_controls:
+                  - volume_mute
+                  - volume_set
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-media-player-card
+                entity: media_player.keuken_speaker
+                name: Keukenspeaker
+                use_media_info: true
+                media_controls:
+                  - play_pause_stop
+                volume_controls:
+                  - volume_set
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-media-player-card
+                entity: media_player.office_speaker
+                name: Kantoorspeaker
+                use_media_info: true
+                media_controls:
+                  - play_pause_stop
+                volume_controls:
+                  - volume_set
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 7
+
+      # Stofzuiger
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Stofzuiger / robot
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-vacuum-card
+                entity: vacuum.roombot
+                name: Roombot
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+                commands:
+                  - start_pause
+                  - stop
+                  - return_home
+              - type: entities
+                show_header_toggle: false
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 22px; border: 0px; box-shadow: none; }
+                entities:
+                  - entity: sensor.roombot_battery_level
+                    name: Accu
+                  - entity: sensor.roombot_tank_level
+                    name: Watertank
+                  - entity: binary_sensor.roombot_bin_full
+                    name: Stofbak vol
+                  - entity: sensor.roombot_total_missions
+                    name: Totaal beurten
+                  - entity: sensor.roombot_failed_missions
+                    name: Mislukte beurten
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 7 / 13
+
+      # Klimaattrend (24u)
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Klimaattrend (24u)
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        yaxis:
+          - id: temp
+            decimals: 1
+            apex_config:
+              title:
+                text: °C
+          - id: co2
+            opposite: true
+            apex_config:
+              title:
+                text: ppm
+        series:
+          - entity: sensor.tempature_sensor_temperature
+            name: Woonkamer
+            yaxis_id: temp
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_temperature
+            name: Slaapkamer
+            yaxis_id: temp
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.multisensor_6_air_temperature
+            name: Multisensor
+            yaxis_id: temp
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.multisensor_6_carbon_dioxide_co2_level
+            name: CO₂
+            yaxis_id: co2
+            type: area
+            opacity: 0.15
+            group_by:
+              func: avg
+              duration: 15min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+  # ===================================================================
+  #  ENERGIE
+  # ===================================================================
+  - title: Energie
+    path: energy
+    icon: mdi:lightning-bolt
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # Chips
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: entity
+            entity: sensor.inverter_total_power
+            icon: mdi:solar-power
+          - type: entity
+            entity: sensor.electricity_meter_power_consumption
+            icon: mdi:transmission-tower-import
+          - type: entity
+            entity: sensor.electricity_meter_power_production
+            icon: mdi:transmission-tower-export
+          - type: entity
+            entity: sensor.meterkast_gas_meter_gas_usage
+            icon: mdi:fire
+          - type: entity
+            entity: sensor.alfen_jk_real_power_sum
+            icon: mdi:ev-station
+          - type: entity
+            entity: sensor.co2_signal_co2_intensity
+            icon: mdi:molecule-co2
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Meters
+      - type: grid
+        columns: 4
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.inverter_total_power
+            name: Zon
+            min: 0
+            max: 6000
+          - type: gauge
+            entity: sensor.electricity_meter_power_consumption
+            name: Import
+            min: 0
+            max: 8
+          - type: gauge
+            entity: sensor.electricity_meter_power_production
+            name: Export
+            min: 0
+            max: 8
+          - type: gauge
+            entity: sensor.alfen_jk_real_power_sum
+            name: Laadpaal
+            min: 0
+            max: 11000
+            severity:
+              green: 1
+              yellow: 0
+              red: 0
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 8px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Vandaag & tarief + fasebelasting
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: custom:stack-in-card
+            cards:
+              - type: custom:mushroom-title-card
+                title: Zon & net
+              - type: grid
+                columns: 2
+                square: false
+                cards:
+                  - type: custom:mushroom-template-card
+                    primary: Zon vandaag
+                    secondary: >
+                      {{ (states('sensor.inverter_voor_energy_today')|float(0)
+                        + states('sensor.inverter_achter_energy_today')|float(0))
+                        | round(1) }} kWh
+                    icon: mdi:solar-power-variant
+                    icon_color: yellow
+                    tap_action:
+                      action: more-info
+                      entity: sensor.inverter_voor_energy_today
+                    card_mod:
+                      style: |
+                        ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+                  - type: custom:mushroom-template-card
+                    primary: Zon deze maand
+                    secondary: >
+                      {{ (states('sensor.inverter_voor_energy_this_month')|float(0)
+                        + states('sensor.inverter_achter_energy_this_month')|float(0))
+                        | round(0) }} kWh
+                    icon: mdi:calendar-month
+                    icon_color: amber
+                    tap_action:
+                      action: more-info
+                      entity: sensor.inverter_voor_energy_this_month
+                    card_mod:
+                      style: |
+                        ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+                  - type: custom:mushroom-entity-card
+                    entity: sensor.electricity_meter_active_tariff
+                    name: Actief tarief
+                    icon: mdi:cash-clock
+                    card_mod:
+                      style: |
+                        ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+                  - type: custom:mushroom-entity-card
+                    entity: sensor.meterkast_gas_meter_gas_usage
+                    name: Gasverbruik
+                    icon: mdi:fire
+                    card_mod:
+                      style: |
+                        ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+            card_mod:
+              style: |
+                ha-card {
+                  border-radius: 22px;
+                  border: 1px solid rgba(180, 190, 254, 0.18);
+                  box-shadow: none;
+                  height: 100%;
+                }
+          - type: custom:stack-in-card
+            cards:
+              - type: custom:mushroom-title-card
+                title: Fasebelasting
+                subtitle: Import per fase
+              - type: grid
+                columns: 3
+                square: false
+                cards:
+                  - type: custom:mushroom-entity-card
+                    entity: sensor.electricity_meter_power_consumption_phase_l1
+                    name: L1
+                    icon: mdi:sine-wave
+                    card_mod:
+                      style: |
+                        ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+                  - type: custom:mushroom-entity-card
+                    entity: sensor.electricity_meter_power_consumption_phase_l2
+                    name: L2
+                    icon: mdi:sine-wave
+                    card_mod:
+                      style: |
+                        ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+                  - type: custom:mushroom-entity-card
+                    entity: sensor.electricity_meter_power_consumption_phase_l3
+                    name: L3
+                    icon: mdi:sine-wave
+                    card_mod:
+                      style: |
+                        ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:apexcharts-card
+                header:
+                  show: false
+                graph_span: 3h
+                chart_type: line
+                series:
+                  - entity: sensor.electricity_meter_power_consumption_phase_l1
+                    name: L1
+                    group_by:
+                      func: avg
+                      duration: 5min
+                  - entity: sensor.electricity_meter_power_consumption_phase_l2
+                    name: L2
+                    group_by:
+                      func: avg
+                      duration: 5min
+                  - entity: sensor.electricity_meter_power_consumption_phase_l3
+                    name: L3
+                    group_by:
+                      func: avg
+                      duration: 5min
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+            card_mod:
+              style: |
+                ha-card {
+                  border-radius: 22px;
+                  border: 1px solid rgba(180, 190, 254, 0.18);
+                  box-shadow: none;
+                  height: 100%;
+                }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Vandaag-grafiek
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Vandaag
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        series:
+          - entity: sensor.inverter_total_power
+            transform: 'return x / 1000;'
+            name: Zon
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.electricity_meter_power_consumption
+            name: Import
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.electricity_meter_power_production
+            name: Export
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.alfen_jk_real_power_sum
+            transform: 'return x / 1000;'
+            name: Laadpaal
+            group_by:
+              func: avg
+              duration: 10min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 9
+
+      - type: custom:power-flow-card-plus
+        view_layout:
+          grid-column: 9 / 13
+        entities:
+          battery:
+            color_icon: true
+            color_circle: true
+            state_of_charge: sensor.ups_battery_charge
+            invert_state: false
+            use_metadata: false
+          grid:
+            entity:
+              consumption: sensor.electricity_meter_power_consumption
+              production: sensor.electricity_meter_power_production
+            color_circle: true
+            display_state: two_way
+            color_value: true
+            color_icon: true
+          fossil_fuel_percentage:
+            entity: sensor.co2_signal_grid_fossil_fuel_percentage
+            color_value: false
+            color_icon: true
+            state_type: percentage
+          home:
+            color_icon: true
+          individual:
+            - entity: sensor.alfen_jk_real_power_sum
+              name: Laadpaal
+              icon: mdi:ev-station
+              color_icon: true
+              calculate_flow_rate: true
+              color:
+                - 137
+                - 180
+                - 250
+            - entity: sensor.zolder_power_switch_power_2
+              name: Servers
+              color_icon: true
+              icon: mdi:server
+              calculate_flow_rate: true
+              color_value: false
+              color:
+                - 255
+                - 38
+                - 0
+            - entity: sensor.meterkast_power_switch_electric_consumption_w
+              name: Netwerk
+              icon: mdi:access-point-network
+              color_icon: true
+            - entity: sensor.kantoor_power_switch_electric_consumption_w_2
+              name: Kantoor
+              icon: mdi:office-building
+              color:
+                - 94
+                - 48
+                - 235
+          solar:
+            entity: sensor.inverter_total_power
+            color_icon: true
+        clickable_entities: true
+        display_zero_lines:
+          mode: show
+          transparency: 50
+          grey_color:
+            - 189
+            - 189
+            - 189
+        use_new_flow_rate_model: true
+        w_decimals: 0
+        kw_decimals: 1
+        min_flow_rate: 0.75
+        max_flow_rate: 6
+        max_expected_power: 2000
+        min_expected_power: 0.01
+        watt_threshold: 1000
+        transparency_zero_lines: 0
+        dashboard_link: /energy
+        title: Huidige energieverdeling
+        theme: Backend-selected
+
+      # Zonne-omvormers
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Zonne-omvormers
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: entities
+                title: Omvormer voor
+                show_header_toggle: false
+                entities:
+                  - sensor.inverter_voor_status
+                  - sensor.inverter_voor_energy_today
+                  - sensor.inverter_voor_energy_this_month
+                  - sensor.inverter_voor_temperature
+                  - sensor.inverter_voor_grid_1_ac_voltage
+                  - sensor.inverter_voor_grid_1_ac_current
+              - type: entities
+                title: Omvormer achter
+                show_header_toggle: false
+                entities:
+                  - sensor.inverter_achter_status
+                  - sensor.inverter_achter_energy_today
+                  - sensor.inverter_achter_energy_this_month
+                  - sensor.inverter_achter_temperature
+                  - sensor.inverter_achter_grid_1_ac_voltage
+                  - sensor.inverter_achter_grid_1_ac_current
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 9
+
+      # Gemeten stekkers
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Gemeten stekkers
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.meterkast_power_switch_electric_consumption_w
+                name: Meterkast
+              - type: custom:mushroom-entity-card
+                entity: sensor.kantoor_power_switch_electric_consumption_w_2
+                name: Kantoor
+              - type: custom:mushroom-entity-card
+                entity: sensor.ender_3d_power_switch_electric_consumption_w
+                name: 3D-printer
+              - type: custom:mushroom-entity-card
+                entity: sensor.zolder_power_switch_electric_consumption_w_2
+                name: Zolder
+              - type: custom:mushroom-entity-card
+                entity: sensor.buiten_stekker_electric_consumption_w
+                name: Buitenstekker
+              - type: custom:mushroom-entity-card
+                entity: sensor.achter_stekker_electric_consumption_w_3
+                name: Achtertuin
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 9 / 13
+
+  # ===================================================================
+  #  AUTO — Peugeot 508 SW (PHEV) + Alfen laadpaal
+  # ===================================================================
+  - title: Auto
+    path: car
+    icon: mdi:car-electric
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # Chips
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: template
+            icon: mdi:car-electric
+            content: 'Accu {{ states(''sensor.oprit_508_sw_battery'') }}%'
+            icon_color: >
+              {% set b = states('sensor.oprit_508_sw_battery')|int(0) %}
+              {% if b < 20 %}red{% elif b < 50 %}amber{% else %}green{% endif %}
+            tap_action:
+              action: more-info
+              entity: sensor.oprit_508_sw_battery
+          - type: entity
+            entity: sensor.oprit_508_sw_autonomy
+            icon: mdi:map-marker-distance
+          - type: entity
+            entity: sensor.oprit_508_sw_fuel
+            icon: mdi:gas-station
+          - type: entity
+            entity: sensor.oprit_508_sw_fuel_autonomy
+            icon: mdi:road-variant
+          - type: template
+            icon: mdi:power-plug
+            content: >
+              {% if is_state('binary_sensor.oprit_508_sw_battery_plugged',
+              'on') %}Aangesloten{% else %}Losgekoppeld{% endif %}
+            icon_color: >
+              {% if is_state('binary_sensor.oprit_508_sw_battery_plugged',
+              'on') %}green{% else %}grey{% endif %}
+          - type: template
+            icon: mdi:battery-charging
+            content: >
+              {% if is_state('binary_sensor.oprit_508_sw_battery_charging',
+              'on') %}Laadt{% else %}Inactief{% endif %}
+            icon_color: >
+              {% if is_state('binary_sensor.oprit_508_sw_battery_charging',
+              'on') %}blue{% else %}grey{% endif %}
+          - type: entity
+            entity: sensor.oprit_508_sw_mileage
+            icon: mdi:counter
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Conditioneel: grote live-laadsessie (alleen wanneer aangesloten)
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.oprit_508_sw_battery_plugged
+            state: 'on'
+        card:
+          type: custom:stack-in-card
+          cards:
+            - type: custom:mushroom-title-card
+              title: Laadsessie actief
+            - type: grid
+              columns: 4
+              square: false
+              cards:
+                - type: custom:mushroom-entity-card
+                  entity: sensor.alfen_jk_real_power_sum
+                  name: Laadvermogen
+                  icon: mdi:flash
+                  icon_color: blue
+                  card_mod:
+                    style: |
+                      ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+                - type: custom:mushroom-entity-card
+                  entity: sensor.oprit_508_sw_battery
+                  name: Laadniveau
+                  icon: mdi:battery-charging
+                  card_mod:
+                    style: |
+                      ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+                - type: custom:mushroom-entity-card
+                  entity: sensor.oprit_508_sw_battery_charging_end
+                  name: Klaar om
+                  icon: mdi:clock-end
+                  card_mod:
+                    style: |
+                      ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+                - type: custom:mushroom-entity-card
+                  entity: sensor.alfen_jk_current_session_wh
+                  name: Sessie-energie
+                  icon: mdi:counter
+                  card_mod:
+                    style: |
+                      ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(137, 180, 250, 0.45);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Accu- & bereikmeters
+      - type: grid
+        columns: 4
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.oprit_508_sw_battery
+            name: Laadniveau
+            min: 0
+            max: 100
+            severity:
+              green: 50
+              yellow: 20
+              red: 0
+          - type: gauge
+            entity: sensor.oprit_508_sw_fuel
+            name: Brandstof
+            min: 0
+            max: 100
+            severity:
+              green: 50
+              yellow: 20
+              red: 0
+          - type: gauge
+            entity: sensor.alfen_jk_real_power_sum
+            name: Laadvermogen
+            min: 0
+            max: 11000
+          - type: gauge
+            entity: sensor.oprit_508_sw_temperature
+            name: Cabinetemp
+            min: -10
+            max: 40
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 8px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Voertuigstatus
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Voertuigstatus
+            subtitle: Peugeot 508 SW
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Laadniveau
+                secondary: >
+                  {{ states('sensor.oprit_508_sw_battery') }}% · bereik {{
+                  states('sensor.oprit_508_sw_autonomy') }}
+                icon: mdi:battery-charging-high
+                icon_color: >
+                  {% set b = states('sensor.oprit_508_sw_battery')|int(0) %}
+                  {% if b < 20 %}red{% elif b < 50 %}amber{% else %}green{%
+                  endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.oprit_508_sw_battery
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-template-card
+                primary: Brandstof
+                secondary: >
+                  {{ states('sensor.oprit_508_sw_fuel') }}% · bereik {{
+                  states('sensor.oprit_508_sw_fuel_autonomy') }}
+                icon: mdi:gas-station
+                icon_color: >
+                  {% set f = states('sensor.oprit_508_sw_fuel')|int(0) %}
+                  {% if f < 20 %}red{% elif f < 50 %}amber{% else %}green{%
+                  endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.oprit_508_sw_fuel
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.oprit_508_sw_doors
+                name: Deuren
+                icon: mdi:car-door
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.oprit_508_sw_alarm
+                name: Alarm
+                icon: mdi:car-alert
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.oprit_508_sw_engine
+                name: Motor
+                icon: mdi:engine
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.oprit_508_sw_moving
+                name: Rijdt
+                icon: mdi:car-traction-control
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.oprit_508_sw_preconditioning
+                name: Voorverwarmen
+                icon: mdi:air-conditioner
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.oprit_508_sw_service_battery
+                name: 12V-accu
+                icon: mdi:car-battery
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - entity: sensor.oprit_508_sw_last_trip
+                name: Laatste rit
+              - entity: sensor.oprit_508_sw_last_charge
+                name: Laatste laadbeurt
+              - entity: sensor.oprit_508_sw_battery_charging_end
+                name: Laden klaar om
+              - entity: number.oprit_508_sw_battery_charging_limit
+                name: Laadlimiet
+              - entity: sensor.oprit_508_sw_command_status
+                name: Laatste opdracht
+            card_mod:
+              style: |
+                ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 7
+
+      # Bediening op afstand
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Bediening op afstand
+            subtitle: Wek de auto eerst als opdrachten mislukken
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - entity: button.oprit_508_sw_doors_lock
+                  - name: Vergrendelen
+                  - icon: mdi:lock
+                  - service: button.press
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - entity: button.oprit_508_sw_doors_unlock
+                  - name: Ontgrendelen
+                  - icon: mdi:lock-open
+                  - service: button.press
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - entity: button.oprit_508_sw_wakeup
+                  - name: Wekken
+                  - icon: mdi:sleep-off
+                  - service: button.press
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - entity: button.oprit_508_sw_charge_start
+                  - name: Laden start
+                  - icon: mdi:battery-charging
+                  - service: button.press
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - entity: button.oprit_508_sw_charge_stop
+                  - name: Laden stop
+                  - icon: mdi:battery-off
+                  - service: button.press
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - entity: button.oprit_508_sw_preconditioning_start
+                  - name: Klimaat aan
+                  - icon: mdi:air-conditioner
+                  - service: button.press
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - entity: button.oprit_508_sw_preconditioning_stop
+                  - name: Klimaat uit
+                  - icon: mdi:fan-off
+                  - service: button.press
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - entity: button.oprit_508_sw_horn
+                  - name: Claxon
+                  - icon: mdi:bullhorn
+                  - service: button.press
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - entity: button.oprit_508_sw_lights
+                  - name: Lichten
+                  - icon: mdi:car-light-high
+                  - service: button.press
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 7 / 13
+
+      # Locatie
+      - type: map
+        entities:
+          - entity: device_tracker.oprit_508_sw_vehicle
+        hours_to_show: 24
+        default_zoom: 12
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              overflow: hidden;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 7
+
+      # Alfen laadpaal
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Alfen laadpaal
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Laadpaalstatus
+                secondary: '{{ states(''sensor.alfen_jk_mode_3_state'') }}'
+                icon: mdi:ev-station
+                icon_color: >
+                  {% if is_state('sensor.alfen_jk_car_charging', 'on')
+                  or states('sensor.alfen_jk_real_power_sum')|float(0) > 100
+                  %}blue{% elif is_state('sensor.alfen_jk_car_connected', 'on')
+                  %}green{% else %}grey{% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.alfen_jk_mode_3_state
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.alfen_jk_real_power_sum
+                name: Laadvermogen
+                icon: mdi:flash
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.alfen_jk_current_session_wh
+                name: Sessie-energie
+                icon: mdi:counter
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.alfen_jk_current_session_duration
+                name: Sessieduur
+                icon: mdi:timer-outline
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.alfen_jk_car_connected
+                name: Auto verbonden
+                icon: mdi:car-connected
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.alfen_jk_board_temperature
+                name: Boardtemp
+                icon: mdi:thermometer
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - entity: number.alfen_jk_max_current_limit_s1
+                name: Max laadstroom
+              - entity: select.alfen_jk_usable_phases1
+                name: Fasen
+              - entity: sensor.alfen_jk_actual_applied_max_current
+                name: Toegepaste max stroom
+              - entity: sensor.alfen_jk_current_total
+                name: Stroomafname
+              - entity: sensor.alfen_jk_real_energy_delivered_sum
+                name: Totaal geleverd
+              - entity: sensor.alfen_jk_availability
+                name: Beschikbaarheid
+            card_mod:
+              style: |
+                ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 7 / 13
+
+      # Laden & accu-grafiek
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Laden & accu (24u)
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        yaxis:
+          - id: power
+            min: 0
+            apex_config:
+              title:
+                text: kW
+          - id: soc
+            opposite: true
+            min: 0
+            max: 100
+            apex_config:
+              title:
+                text: '%'
+        series:
+          - entity: sensor.alfen_jk_real_power_sum
+            transform: 'return x / 1000;'
+            name: Laadvermogen
+            yaxis_id: power
+            type: area
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.oprit_508_sw_battery
+            name: Accu
+            yaxis_id: soc
+            type: line
+            group_by:
+              func: max
+              duration: 10min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Rit & motor
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Rit & motor
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - entity: sensor.oprit_508_sw_last_trip
+                name: Laatste rit
+              - entity: sensor.oprit_508_sw_mileage
+                name: Kilometerstand
+              - entity: sensor.oprit_508_sw_speed
+                name: Snelheid
+              - entity: sensor.oprit_508_sw_fuel_consumption_instant
+                name: Verbruik nu
+              - entity: sensor.oprit_508_sw_fuel_consumption_total
+                name: Verbruik totaal
+              - entity: sensor.oprit_508_sw_coolant_temperature
+                name: Koelvloeistof
+              - entity: sensor.oprit_508_sw_oil_temperature
+                name: Olietemperatuur
+              - entity: sensor.oprit_508_sw_air_temperature
+                name: Buitentemperatuur
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 7
+
+      # Accugezondheid & laadinstellingen
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Accugezondheid & laadinstellingen
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.oprit_508_sw_battery_soh_capacity
+                name: Accu SoH
+                icon: mdi:battery-heart-outline
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.oprit_508_sw_battery_soh_resistance
+                name: Interne weerstand
+                icon: mdi:omega
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.oprit_508_sw_battery_charging_type
+                name: Laadtype
+                icon: mdi:ev-plug-type2
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.oprit_508_sw_battery_charging_rate
+                name: Laadsnelheid
+                icon: mdi:speedometer
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - entity: number.oprit_508_sw_battery_charging_limit
+                name: Laadlimiet
+              - entity: switch.oprit_508_sw_battery_charging_limit
+                name: Laadlimiet actief
+              - entity: time.oprit_508_sw_battery_charging_start
+                name: Geplande laadstart
+              - entity: switch.oprit_508_sw_abrp_sync
+                name: ABRP-synchronisatie
+              - entity: number.oprit_508_sw_refresh_data_interval
+                name: Verversingsinterval
+            card_mod:
+              style: |
+                ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 7 / 13
+
+  # ===================================================================
+  #  BEVEILIGING
+  # ===================================================================
+  - title: Beveiliging
+    path: security
+    icon: mdi:shield-lock
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # Statuschips
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: template
+            icon: mdi:shield-star
+            content: >
+              {% set crit = states('sensor.wazuh_critical_24h')|int(0) %}
+              {% set high = states('sensor.wazuh_high_24h')|int(0) %}
+              {% set alarm = states('alarm_control_panel.alarm') %}
+              {% set nas_warn = is_state('binary_sensor.synology_security_status', 'on') %}
+              {% if crit > 0 or nas_warn %}
+                Status: Kritiek
+              {% elif high > 0 or alarm == 'disarmed' %}
+                Status: Waarschuwing
+              {% else %}
+                Status: Goed
+              {% endif %}
+            icon_color: >
+              {% set crit = states('sensor.wazuh_critical_24h')|int(0) %}
+              {% set high = states('sensor.wazuh_high_24h')|int(0) %}
+              {% set alarm = states('alarm_control_panel.alarm') %}
+              {% set nas_warn = is_state('binary_sensor.synology_security_status', 'on') %}
+              {% if crit > 0 or nas_warn %}
+                red
+              {% elif high > 0 or alarm == 'disarmed' %}
+                amber
+              {% else %}
+                green
+              {% endif %}
+            tap_action:
+              action: more-info
+              entity: sensor.siem_security_score
+          - type: template
+            icon: mdi:shield-home
+            content: Alarm {{ states('alarm_control_panel.alarm') }}
+            icon_color: >
+              {% if is_state('alarm_control_panel.alarm', 'disarmed') %}red{%
+              else %}green{% endif %}
+            tap_action:
+              action: more-info
+              entity: alarm_control_panel.alarm
+          - type: template
+            icon: mdi:shield-check
+            content: SIEM {{ states('sensor.siem_security_score') }}
+            icon_color: blue
+            tap_action:
+              action: more-info
+              entity: sensor.siem_security_score
+          - type: template
+            icon: mdi:alert-octagon
+            content: Kritiek {{ states('sensor.wazuh_critical_24h') }}
+            icon_color: >
+              {% if states('sensor.wazuh_critical_24h')|int(0) > 0 %}red{% else
+              %}green{% endif %}
+            tap_action:
+              action: more-info
+              entity: sensor.wazuh_critical_24h
+          - type: template
+            icon: mdi:alert
+            content: Hoog {{ states('sensor.wazuh_high_24h') }}
+            icon_color: >
+              {% if states('sensor.wazuh_high_24h')|int(0) > 0 %}amber{% else
+              %}green{% endif %}
+            tap_action:
+              action: more-info
+              entity: sensor.wazuh_high_24h
+          - type: template
+            icon: mdi:nas
+            content: >
+              {% if is_state('binary_sensor.synology_security_status', 'on') %}
+                NAS waarschuwing
+              {% else %}
+                NAS OK
+              {% endif %}
+            icon_color: >
+              {% if is_state('binary_sensor.synology_security_status', 'on') %}
+                red
+              {% else %}
+                green
+              {% endif %}
+            tap_action:
+              action: more-info
+              entity: binary_sensor.synology_security_status
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Vereist aandacht
+      - type: custom:auto-entities
+        card:
+          type: grid
+          title: Vereist aandacht
+          columns: 2
+          square: false
+        card_param: cards
+        filter:
+          include:
+            - entity_id: binary_sensor.frontdoor_open
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:door-open
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 72px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+            - entity_id: binary_sensor.synology_security_status
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:shield-alert
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 72px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+            - entity_id: binary_sensor.*tamper*
+              state: 'on'
+              options:
+                type: custom:button-card
+                entity: this.entity_id
+                icon: mdi:shield-alert
+                show_name: true
+                show_state: true
+                tap_action:
+                  action: more-info
+                styles:
+                  card:
+                    - border-radius: 16px
+                    - padding: 10px 12px
+                    - height: 72px
+                    - border-width: 1px
+                    - border-style: solid
+                    - border-color: rgba(220, 70, 70, 0.60)
+                  name:
+                    - font-size: 12px
+                    - font-weight: 600
+                  state:
+                    - font-size: 10px
+                    - opacity: 0.75
+                  icon:
+                    - color: rgb(220, 70, 70)
+          exclude: []
+        sort:
+          method: friendly_name
+        show_empty: false
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 8px;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Sensortegels
+      - type: grid
+        columns: 4
+        square: false
+        cards:
+          - type: custom:button-card
+            entity: binary_sensor.frontdoor_open
+            name: Voordeur
+            icon: mdi:door-closed
+            show_state: true
+            tap_action:
+              action: more-info
+            state:
+              - value: 'on'
+                color: rgb(243, 139, 168)
+              - value: 'off'
+                color: rgb(166, 227, 161)
+          - type: custom:button-card
+            entity: binary_sensor.front_door_motion
+            name: Beweging deur
+            icon: mdi:motion-sensor
+            show_state: true
+            tap_action:
+              action: more-info
+            state:
+              - value: 'on'
+                color: rgb(243, 139, 168)
+              - value: 'off'
+                color: rgb(166, 227, 161)
+          - type: custom:button-card
+            entity: binary_sensor.back_yard_motion_sensor_motion_detection
+            name: Beweging achtertuin
+            icon: mdi:motion-sensor
+            show_state: true
+            tap_action:
+              action: more-info
+            state:
+              - value: 'on'
+                color: rgb(243, 139, 168)
+              - value: 'off'
+                color: rgb(166, 227, 161)
+          - type: custom:button-card
+            entity: lock.elite
+            name: Voordeurslot
+            icon: mdi:lock
+            show_state: true
+            tap_action:
+              action: more-info
+            state:
+              - value: locked
+                color: rgb(166, 227, 161)
+              - value: unlocked
+                color: rgb(243, 139, 168)
+              - operator: default
+                color: rgb(245, 180, 29)
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 8px;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # SIEM / Wazuh
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: SIEM / Wazuh overzicht
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: IT-beveiligingsstatus
+                secondary: >
+                  {% set score = states('sensor.siem_security_score')|int(0) %}
+                  {% set crit = states('sensor.wazuh_critical_24h')|int(0) %}
+                  {% set high = states('sensor.wazuh_high_24h')|int(0) %}
+                  {% if crit > 0 %}
+                    Kritieke druk
+                  {% elif high > 0 %}
+                    Verhoogde druk
+                  {% elif score >= 80 %}
+                    Gezond
+                  {% else %}
+                    Goed opletten
+                  {% endif %}
+                icon: mdi:shield-star
+                icon_color: >
+                  {% set crit = states('sensor.wazuh_critical_24h')|int(0) %}
+                  {% set high = states('sensor.wazuh_high_24h')|int(0) %}
+                  {% if crit > 0 %}
+                    red
+                  {% elif high > 0 %}
+                    amber
+                  {% else %}
+                    green
+                  {% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.siem_security_score
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-template-card
+                primary: Dreigingsdruk (24u)
+                secondary: >
+                  K {{ states('sensor.wazuh_critical_24h')|int(0) }} •
+                  H {{ states('sensor.wazuh_high_24h')|int(0) }} •
+                  M {{ states('sensor.wazuh_medium_24h')|int(0) }} •
+                  L {{ states('sensor.wazuh_low_24h')|int(0) }}
+                icon: mdi:alert-decagram
+                icon_color: >
+                  {% if states('sensor.wazuh_critical_24h')|int(0) > 0 %}
+                    red
+                  {% elif states('sensor.wazuh_high_24h')|int(0) > 0 %}
+                    amber
+                  {% else %}
+                    green
+                  {% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.wazuh_critical_24h
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-template-card
+                primary: Belangrijkste regel (24u)
+                secondary: '{{ states(''sensor.wazuh_top_rule_24h'') }}'
+                icon: mdi:text-box-search
+                icon_color: blue
+                tap_action:
+                  action: more-info
+                  entity: sensor.wazuh_top_rule_24h
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-template-card
+                primary: WAN-drops
+                secondary: >
+                  {{ states('sensor.wazuh_wan_local_drops_24h')|int(0) }} drops •
+                  Top bron {{ states('sensor.wazuh_top_wan_local_source_ip_24h') }}
+                icon: mdi:wan
+                icon_color: >
+                  {% if states('sensor.wazuh_wan_local_drops_24h')|int(0) > 0 %}
+                    amber
+                  {% else %}
+                    green
+                  {% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.wazuh_wan_local_drops_24h
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - sensor.siem_security_score
+              - sensor.wazuh_top_rule_24h
+              - sensor.wazuh_critical_24h
+              - sensor.wazuh_high_24h
+              - sensor.wazuh_medium_24h
+              - sensor.wazuh_low_24h
+              - sensor.wazuh_wan_local_drops_24h
+              - sensor.wazuh_top_wan_local_source_ip_24h
+            card_mod:
+              style: |
+                ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 8
+
+      # Reactietijden
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Reactietijden
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        span:
+          start: day
+        series:
+          - entity: sensor.home_assistant_response_time
+            name: Home Assistant
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.unifi_controller_response_time
+            name: UniFi
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.step_ca_acme_response_time
+            name: Step CA
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.internet_access_response_time
+            name: Internet
+            group_by:
+              func: avg
+              duration: 15min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 8 / 13
+
+      # Camera's
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: picture-entity
+            entity: camera.front_door_live_view
+            camera_view: live
+            name: Voordeur live
+          - type: picture-entity
+            entity: camera.achtertuin_achtertuin
+            camera_view: live
+            name: Achtertuin live
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              overflow: hidden;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 8
+
+      # Alarm & updates
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Alarm & bewaking
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - alarm_control_panel.alarm
+              - alarm_control_panel.beneden
+              - alarm_control_panel.boven
+              - switch.synology_surveillance_station_home_mode
+            card_mod:
+              style: |
+                ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+          - type: custom:mushroom-title-card
+            title: Openstaande beveiligingsupdates
+            subtitle: Alleen items die actie vereisen
+          - type: custom:auto-entities
+            card:
+              type: entities
+              show_header_toggle: false
+              card_mod:
+                style: |
+                  ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+            filter:
+              include:
+                - entity_id: update.home_assistant_*
+                  state: 'on'
+                - entity_id: update.tailscale_update
+                  state: 'on'
+                - entity_id: update.wazuh_agent_update
+                  state: 'on'
+                - entity_id: update.grafana_promtail_update
+                  state: 'on'
+                - entity_id: update.zigbee2mqtt_update
+                  state: 'on'
+                - entity_id: update.matter_server_update
+                  state: 'on'
+                - entity_id: update.openthread_border_router_update
+                  state: 'on'
+            sort:
+              method: friendly_name
+            show_empty: false
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 8 / 13
+
+      # Recente gebeurtenissen (logboek)
+      - type: logbook
+        title: Recente gebeurtenissen (24u)
+        hours_to_show: 24
+        entities:
+          - binary_sensor.frontdoor_open
+          - binary_sensor.front_door_motion
+          - binary_sensor.back_yard_motion_sensor_motion_detection
+          - lock.elite
+          - alarm_control_panel.alarm
+          - switch.synology_surveillance_station_home_mode
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 7
+
+      # Dreigingstrend
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Dreigingstrend (7 dagen)
+          show_states: true
+          colorize_states: true
+        graph_span: 7d
+        series:
+          - entity: sensor.wazuh_critical_24h
+            name: Kritiek
+            type: column
+            group_by:
+              func: max
+              duration: 1d
+          - entity: sensor.wazuh_high_24h
+            name: Hoog
+            type: column
+            group_by:
+              func: max
+              duration: 1d
+          - entity: sensor.wazuh_medium_24h
+            name: Middel
+            type: line
+            group_by:
+              func: max
+              duration: 1d
+          - entity: sensor.wazuh_low_24h
+            name: Laag
+            type: line
+            group_by:
+              func: max
+              duration: 1d
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 7 / 13
+
+  # ===================================================================
+  #  HOMELAB
+  # ===================================================================
+  - title: Homelab
+    path: homelab
+    icon: mdi:server
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # Chips
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: template
+            icon: mdi:kubernetes
+            content: >
+              {{ states('sensor.homelab_pods_count') }} pods •
+              {{ states('sensor.homelab_nodes_count') }} nodes
+            icon_color: >
+              {% if is_state('binary_sensor.homelab_cluster_health', 'on') %}green{% else %}red{% endif %}
+            tap_action:
+              action: more-info
+              entity: binary_sensor.homelab_cluster_health
+          - type: template
+            icon: mdi:backup-restore
+            content: '{{ states(''sensor.backup_backup_manager_state'') }}'
+            icon_color: >
+              {% if states('sensor.backup_backup_manager_state') in ['idle',
+              'ready', 'ok'] %}green{% else %}amber{% endif %}
+            tap_action:
+              action: more-info
+              entity: sensor.backup_last_successful_automatic_backup
+          - type: template
+            icon: mdi:download-network
+            content: >
+              {{ states('sensor.speedtest_download')|round(0) }}↓ {{
+              states('sensor.speedtest_upload')|round(0) }}↑
+            icon_color: teal
+            tap_action:
+              action: more-info
+              entity: sensor.speedtest_download
+          - type: template
+            icon: mdi:update
+            content: |
+              {% set updates = expand(states.update)
+                | selectattr('state', 'eq', 'on') | list %}
+              {{ updates | count }} openstaand
+            icon_color: >
+              {% set updates = expand(states.update)
+                | selectattr('state', 'eq', 'on') | list %}
+              {{ 'amber' if updates | count > 0 else 'green' }}
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/homelab
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 10px;
+              height: 100%;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # Servicestatus-raster
+      - type: grid
+        columns: 10
+        square: false
+        cards:
+          - type: custom:button-card
+            entity: sensor.home_assistant_status
+            name: Home Assistant
+            icon: mdi:home-assistant
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: online
+                color: rgb(166, 227, 161)
+              - operator: default
+                color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: sensor.internet_access_status
+            name: Internet
+            icon: mdi:web
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - operator: default
+                color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: sensor.unifi_controller_status
+            name: UniFi
+            icon: mdi:router-network
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - operator: default
+                color: rgb(243, 139, 168)
+          - type: custom:button-card
+            entity: sensor.prometheus_status
+            name: Prometheus
+            icon: mdi:chart-line
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.loki_status
+            name: Loki
+            icon: mdi:database-search
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.alertmanager_status
+            name: Alertmanager
+            icon: mdi:alarm-light
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.uptime_kuma_status
+            name: Uptime Kuma
+            icon: mdi:heart-pulse
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.postgres_status
+            name: PostgreSQL
+            icon: mdi:database
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.emqx_mqtt_status
+            name: EMQX
+            icon: mdi:message-fast
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.ad_guard_status
+            name: AdGuard
+            icon: mdi:shield-check
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.plex_status
+            name: Plex
+            icon: mdi:plex
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.sonarr_status
+            name: Sonarr
+            icon: mdi:television-play
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.radarr_status
+            name: Radarr
+            icon: mdi:movie-open
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.jaeger_status
+            name: Jaeger
+            icon: mdi:chart-scatter-plot
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.step_ca_acme_status
+            name: Step CA
+            icon: mdi:certificate
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.promtail_status
+            name: Promtail
+            icon: mdi:file-document-arrow-right
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+          - type: custom:button-card
+            entity: sensor.monitoring_status
+            name: Monitoring
+            icon: mdi:monitor-dashboard
+            show_state: true
+            state:
+              - value: up
+                color: rgb(166, 227, 161)
+              - value: down
+                color: rgb(243, 139, 168)
+              - value: pending
+                color: rgb(245, 180, 29)
+              - value: maintenance
+                color: rgb(11, 58, 227)
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 8px;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # K8s-cluster
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: K8s-cluster
+            subtitle: >
+              {{ states('sensor.homelab_nodes_count') }} nodes •
+              {{ states('sensor.homelab_pods_count') }} pods
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Node-status
+                secondary: >
+                  {% set bad = namespace(nodes=[]) %}
+                  {% for n in [1,2,3,4,5] %}
+                    {% set mem = 'binary_sensor.homelab_k8s_' ~ n ~ '_memory_pressure' %}
+                    {% set dsk = 'binary_sensor.homelab_k8s_' ~ n ~ '_disk_pressure' %}
+                    {% set pid = 'binary_sensor.homelab_k8s_' ~ n ~ '_pid_pressure' %}
+                    {% set net = 'binary_sensor.homelab_k8s_' ~ n ~ '_network_unavailable' %}
+                    {% if is_state(mem,'on') or is_state(dsk,'on') or is_state(pid,'on') or is_state(net,'on') %}
+                      {% set bad.nodes = bad.nodes + ['k8s-' ~ n] %}
+                    {% endif %}
+                  {% endfor %}
+                  {% if bad.nodes | length == 0 %}Alle 5 nodes gereed{% else %}Niet gereed: {{ bad.nodes | join(', ') }}{% endif %}
+                icon: mdi:server-network
+                icon_color: >
+                  {% set bad = namespace(found=false) %}
+                  {% for n in [1,2,3,4,5] %}
+                    {% if is_state('binary_sensor.homelab_k8s_' ~ n ~ '_memory_pressure','on')
+                      or is_state('binary_sensor.homelab_k8s_' ~ n ~ '_disk_pressure','on')
+                      or is_state('binary_sensor.homelab_k8s_' ~ n ~ '_pid_pressure','on')
+                      or is_state('binary_sensor.homelab_k8s_' ~ n ~ '_network_unavailable','on') %}
+                      {% set bad.found = true %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ 'red' if bad.found else 'green' }}
+                tap_action:
+                  action: more-info
+                  entity: binary_sensor.homelab_cluster_health
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.homelab_cluster_health
+                name: Clusterstatus
+                icon: mdi:kubernetes
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.homelab_pods_count
+                name: Pods
+                icon: mdi:cube-outline
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.homelab_deployments_count
+                name: Deployments
+                icon: mdi:application-cog
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.homelab_statefulsets_count
+                name: StatefulSets
+                icon: mdi:database-cog
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.homelab_daemonsets_count
+                name: DaemonSets
+                icon: mdi:cog-sync
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 5
+
+      # Synology NAS
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Synology NAS
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_cpu_utilization_total
+                name: CPU
+                icon: mdi:cpu-64-bit
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_memory_usage_real
+                name: Geheugen
+                icon: mdi:memory
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_volume_1_status
+                name: Volumestatus
+                icon: mdi:harddisk
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_volume_1_volume_used
+                name: Schijf gebruikt
+                icon: mdi:chart-donut
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.synology_temperature
+                name: Temperatuur
+                icon: mdi:thermometer
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: binary_sensor.synology_security_status
+                name: Beveiligingsstatus
+                icon: mdi:shield-check
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 5 / 9
+
+      # Certificaten
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Certificaten
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - sensor.unifi_controller_certificate_expiry
+              - sensor.step_ca_acme_certificate_expiry
+              - sensor.vtt_certificate_expiry
+              - sensor.plex_certificate_expiry
+              - sensor.home_assistant_certificate_expiry
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 9 / 13
+
+      # Servicelatentie-grafiek
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Servicelatentie (12u)
+          show_states: true
+          colorize_states: true
+        graph_span: 12h
+        series:
+          - entity: sensor.home_assistant_response_time
+            name: HA
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.postgres_response_time
+            transform: 'return x / 1000;'
+            unit: s
+            name: PostgreSQL
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.ad_guard_response_time
+            name: AdGuard
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.internet_access_response_time
+            name: Internet
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.prometheus_response_time
+            name: Prometheus
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.loki_response_time
+            name: Loki
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.unifi_controller_response_time
+            name: UniFi
+            group_by:
+              func: avg
+              duration: 15min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 9
+
+      # Back-upstatus
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Back-upstatus
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - sensor.backup_backup_manager_state
+              - sensor.backup_last_successful_automatic_backup
+              - sensor.backup_next_scheduled_automatic_backup
+              - sensor.backup_last_attempted_automatic_backup
+              - event.backup_automatic_backup
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 9 / 13
+
+      # Openstaande updates
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Openstaande updates
+          - type: custom:auto-entities
+            card:
+              type: entities
+              show_header_toggle: false
+            filter:
+              include:
+                - domain: update
+                  state: 'on'
+            sort:
+              method: friendly_name
+            show_empty: false
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+      # DNS (Technitium)
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: DNS (Technitium)
+          - type: grid
+            columns: 4
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.technitium_epost_home_arpa_technitiumdns_total_queries_technitium_epost_home_arpa
+                name: Query's
+                icon: mdi:dns
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.technitium_epost_home_arpa_technitiumdns_cached_entries_technitium_epost_home_arpa
+                name: Cache
+                icon: mdi:database
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.technitium_epost_home_arpa_technitiumdns_total_dropped_technitium_epost_home_arpa
+                name: Gedropt
+                icon: mdi:cancel
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.technitium_epost_home_arpa_technitiumdns_blocked_zones_technitium_epost_home_arpa
+                name: Blocklist-zones
+                icon: mdi:shield-off
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - entity: sensor.technitium_epost_home_arpa_technitiumdns_top_domains_technitium_epost_home_arpa
+                name: Top domein
+              - entity: sensor.technitium_epost_home_arpa_technitiumdns_top_blocked_domains_technitium_epost_home_arpa
+                name: Top geblokkeerd
+              - entity: sensor.technitium_epost_home_arpa_technitiumdns_top_clients_technitium_epost_home_arpa
+                name: Drukste client
+            card_mod:
+              style: |
+                ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 13
+
+  # ===================================================================
+  #  GEZONDHEID
+  # ===================================================================
+  - title: Gezondheid
+    path: health
+    icon: mdi:heart-pulse
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(12, 1fr)
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      - type: custom:mushroom-chips-card
+        alignment: justify
+        chips:
+          - type: entity
+            entity: sensor.total_steps
+            icon: mdi:shoe-print
+          - type: entity
+            entity: sensor.sleep_score
+            icon: mdi:sleep
+          - type: entity
+            entity: sensor.body_battery_most_recent
+            icon: mdi:battery-heart
+          - type: entity
+            entity: sensor.resting_heart_rate
+            icon: mdi:heart
+          - type: entity
+            entity: sensor.weight
+            icon: mdi:scale-bathroom
+          - type: entity
+            entity: sensor.garmin_connect_training_readiness
+            icon: mdi:run-fast
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 10px;
+            }
+            mushroom-template-chip, mushroom-entity-chip {
+              margin: 2px !important;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      - type: grid
+        columns: 4
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.sleep_score
+            name: Slaapscore
+            min: 0
+            max: 100
+          - type: gauge
+            entity: sensor.body_battery_most_recent
+            name: Body Battery
+            min: 0
+            max: 100
+          - type: gauge
+            entity: sensor.resting_heart_rate
+            name: Rust-HR
+            min: 35
+            max: 100
+          - type: gauge
+            entity: sensor.average_spo2
+            name: Gem. SpO₂
+            min: 85
+            max: 100
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              padding: 8px;
+            }
+        view_layout:
+          grid-column: 1 / 13
+      # Training · HRV · Body Battery
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Training & herstel
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: sensor.garmin_connect_training_readiness
+                primary: Gereedheid
+                secondary: '{{ states(''sensor.garmin_connect_training_readiness'') }}'
+                icon: mdi:run-fast
+                icon_color: >
+                  {% set v = states('sensor.garmin_connect_training_readiness')|int(0) %}
+                  {% if v >= 75 %}green{% elif v >= 40 %}amber{% else %}red{% endif %}
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.garmin_connect_training_status
+                name: Status
+                icon: mdi:chart-timeline-variant
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.garmin_connect_recovery_time
+                name: Herstel
+                icon: mdi:timer-sand
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.garmin_connect_vo2_max
+                name: VO₂ max
+                icon: mdi:lungs
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.garmin_connect_fitness_age
+                name: Fitheidsleeftijd
+                icon: mdi:cake-variant
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.garmin_connect_intensity_minutes
+                name: Intensiteit
+                icon: mdi:timer-play
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 5
+
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: HRV & hartslag
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: sensor.hrv_status
+                primary: HRV-status
+                secondary: '{{ states(''sensor.hrv_status'') }}'
+                icon: mdi:heart-pulse
+                icon_color: >
+                  {% set s = states('sensor.hrv_status')|lower %}
+                  {% if 'balanced' in s or 'gebalanceerd' in s %}green
+                  {% elif 'low' in s or 'laag' in s or 'unbalanced' in s %}red
+                  {% else %}amber{% endif %}
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.garmin_connect_hrv_last_night_average
+                name: Afgelopen nacht
+                icon: mdi:weather-night
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.garmin_connect_hrv_weekly_average
+                name: Weekgemiddelde
+                icon: mdi:calendar-week
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.garmin_connect_hrv_baseline
+                name: Basislijn
+                icon: mdi:chart-bell-curve
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.resting_heart_rate
+                name: Rusthartslag
+                icon: mdi:heart
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.average_spo2
+                name: SpO₂
+                icon: mdi:water-percent
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 5 / 9
+
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Body Battery & stress
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.body_battery_most_recent
+                name: Nu
+                icon: mdi:battery-heart-variant
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.body_battery_highest
+                name: Hoogste
+                icon: mdi:arrow-up-bold
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.body_battery_charged
+                name: Opgeladen
+                icon: mdi:battery-plus-variant
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.body_battery_drained
+                name: Verbruikt
+                icon: mdi:battery-minus-variant
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.active_time
+                name: Actief
+                icon: mdi:run
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+              - type: custom:mushroom-entity-card
+                entity: sensor.activity_stress_percentage
+                name: Stress
+                icon: mdi:emoticon-stressed
+                card_mod:
+                  style: |
+                    ha-card { border-radius: 16px; border: 0px; box-shadow: none; }
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 9 / 13
+
+      # Grafieken
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Activiteit (7 dagen)
+          show_states: true
+          colorize_states: true
+        graph_span: 7d
+        series:
+          - entity: sensor.total_steps
+            name: Stappen
+            type: column
+            group_by:
+              func: max
+              duration: 1d
+          - entity: sensor.sleep_score
+            name: Slaapscore
+            type: line
+            group_by:
+              func: avg
+              duration: 1d
+          - entity: sensor.body_battery_most_recent
+            name: Body Battery
+            type: line
+            group_by:
+              func: avg
+              duration: 1d
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 1 / 7
+
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Gewicht & vet (30 dagen)
+          show_states: true
+          colorize_states: true
+        graph_span: 30d
+        yaxis:
+          - id: kg
+            decimals: 1
+            apex_config:
+              title:
+                text: kg
+          - id: pct
+            opposite: true
+            apex_config:
+              title:
+                text: '%'
+        series:
+          - entity: sensor.weight
+            name: Gewicht
+            yaxis_id: kg
+            group_by:
+              func: avg
+              duration: 1d
+          - entity: sensor.body_fat
+            name: Vetpercentage
+            yaxis_id: pct
+            group_by:
+              func: avg
+              duration: 1d
+          - entity: sensor.muscle_mass
+            name: Spiermassa
+            yaxis_id: kg
+            group_by:
+              func: avg
+              duration: 1d
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        view_layout:
+          grid-column: 7 / 13
+
+      # Slaap · lichaam · kerncijfers
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Slaap vannacht
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - entity: sensor.sleep_score
+                name: Slaapscore
+              - entity: sensor.total_sleep_duration
+                name: Totale slaap
+              - entity: sensor.garmin_connect_deep_sleep
+                name: Diepe slaap
+              - entity: sensor.garmin_connect_light_sleep
+                name: Lichte slaap
+              - entity: sensor.garmin_connect_rem_sleep
+                name: REM-slaap
+              - entity: sensor.garmin_connect_awake_time
+                name: Wakker
+              - entity: sensor.garmin_connect_sleep_need
+                name: Slaapbehoefte
+              - entity: sensor.garmin_connect_bedtime
+                name: Bedtijd
+              - entity: sensor.garmin_connect_wake_time
+                name: Waktijd
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 1 / 5
+
+      - type: custom:stack-in-card
+        cards:
+          - type: custom:mushroom-title-card
+            title: Lichaamssamenstelling
+          - type: entities
+            show_header_toggle: false
+            entities:
+              - entity: sensor.weight
+                name: Gewicht
+              - entity: sensor.bmi
+                name: BMI
+              - entity: sensor.body_fat
+                name: Vetpercentage
+              - entity: sensor.muscle_mass
+                name: Spiermassa
+              - entity: sensor.body_water
+                name: Lichaamswater
+              - entity: sensor.bone_mass
+                name: Botmassa
+              - entity: sensor.visceral_fat
+                name: Visceraal vet
+              - entity: sensor.metabolic_age
+                name: Metabole leeftijd
+              - entity: sensor.physique_rating
+                name: Fysieke score
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 5 / 9
+
+      - type: entities
+        title: Kerncijfers
+        show_header_toggle: false
+        entities:
+          - sensor.total_steps
+          - sensor.garmin_connect_weekly_step_average
+          - sensor.active_time
+          - sensor.sedentary_time
+          - sensor.garmin_connect_intensity_minutes
+          - sensor.resting_heart_rate
+          - sensor.average_spo2
+          - sensor.garmin_connect_training_readiness
+          - sensor.garmin_connect_training_status
+          - sensor.garmin_connect_vo2_max
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+              height: 100%;
+            }
+        view_layout:
+          grid-column: 9 / 13

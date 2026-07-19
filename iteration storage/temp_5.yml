@@ -1,0 +1,1643 @@
+# =====================================================================
+#  Woning-dashboard — FROM SCRATCH build (2026)
+#  Uitsluitend gebouwd op basis van entities.jsonc (geen verzonnen entiteiten).
+#  Stijl: Catppuccin-geïnspireerd — Mushroom + button-card + ApexCharts +
+#         power-flow-card-plus + auto-entities + stack-in-card + card-mod.
+#  Layout: layout-card (responsive auto-fit grid).
+#  Weergaven: Overzicht · Woning · Energie · Auto · Beveiliging · Homelab · Gezondheid
+#  Padnamen blijven Engels zodat interne navigatie werkt; titels zijn Nederlands.
+# =====================================================================
+title: Woning
+
+decluttering_templates:
+  # Opdrachttegel die een button.press aanroept (auto-commando's e.d.)
+  command_button:
+    card:
+      type: custom:mushroom-template-card
+      primary: '[[name]]'
+      icon: '[[icon]]'
+      icon_color: '[[color]]'
+      layout: vertical
+      tap_action:
+        action: call-service
+        service: button.press
+        target:
+          entity_id: '[[entity]]'
+
+views:
+  # ===================================================================
+  #  1 · OVERZICHT
+  # ===================================================================
+  - title: Overzicht
+    path: overview
+    icon: mdi:view-dashboard
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr))
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # ---- Statuschips (volledige breedte) ------------------------------
+      - type: custom:mushroom-chips-card
+        alignment: center
+        view_layout:
+          grid-column: 1 / -1
+        chips:
+          - type: template
+            icon: mdi:home-account
+            content: >
+              {% if is_state('group.persons','home') %}Thuis{% else %}Weg{% endif %}
+            icon_color: >
+              {% if is_state('group.persons','home') %}green{% else %}amber{% endif %}
+            tap_action:
+              action: more-info
+              entity: group.persons
+          - type: template
+            icon: mdi:shield-home
+            entity: alarm_control_panel.alarm
+            content: >
+              {% if states('alarm_control_panel.alarm').startswith('armed') %}Aan{% else %}Uit{% endif %}
+            icon_color: >
+              {% if states('alarm_control_panel.alarm').startswith('armed') %}green{% else %}red{% endif %}
+            tap_action:
+              action: more-info
+              entity: alarm_control_panel.alarm
+          - type: template
+            icon: mdi:lock
+            entity: lock.elite
+            content: >
+              {% if is_state('lock.elite','locked') %}Vergrendeld{% else %}Open{% endif %}
+            icon_color: >
+              {% if is_state('lock.elite','locked') %}green{% else %}red{% endif %}
+            tap_action:
+              action: more-info
+              entity: lock.elite
+          - type: template
+            icon: mdi:solar-power-variant
+            content: >
+              {{ (states('sensor.inverter_total_power')|float(0)/1000)|round(2) }} kW
+            icon_color: amber
+            tap_action:
+              action: more-info
+              entity: sensor.inverter_total_power
+          - type: template
+            icon: mdi:transmission-tower
+            entity: sensor.electricity_meter_power_consumption
+            content: >
+              {{ states('sensor.electricity_meter_power_consumption') }} kW
+            icon_color: blue
+            tap_action:
+              action: more-info
+              entity: sensor.electricity_meter_power_consumption
+          - type: template
+            icon: mdi:car-electric
+            entity: sensor.oprit_508_sw_battery
+            content: '{{ states("sensor.oprit_508_sw_battery") }}%'
+            icon_color: >
+              {% if states('sensor.oprit_508_sw_battery')|int(0) > 50 %}green{% else %}amber{% endif %}
+            tap_action:
+              action: navigate
+              navigation_path: /ha-dashboard/car
+          - type: template
+            icon: mdi:robot-vacuum
+            entity: vacuum.roombot
+            content: '{{ states("vacuum.roombot") }}'
+            icon_color: >
+              {% if is_state('vacuum.roombot','cleaning') %}blue{% else %}grey{% endif %}
+            tap_action:
+              action: more-info
+              entity: vacuum.roombot
+          - type: template
+            icon: mdi:speedometer
+            content: '{{ states("sensor.speedtest_download")|round(0) }}↓ Mbps'
+            icon_color: teal
+            tap_action:
+              action: more-info
+              entity: sensor.speedtest_download
+
+      # ---- Weer -----------------------------------------------------------
+      - type: weather-forecast
+        entity: weather.forecast_home
+        show_current: true
+        show_forecast: true
+        forecast_type: daily
+
+      # ---- Scène-keuze ----------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: &cm
+          style: |
+            ha-card {
+              border-radius: 22px;
+              border: 1px solid rgba(180, 190, 254, 0.18);
+              box-shadow: none;
+            }
+        cards:
+          - type: custom:mushroom-title-card
+            title: Scène & modi
+            subtitle: Kies een lichtscène
+          - type: custom:mushroom-select-card
+            entity: input_select.light_scene
+            icon: mdi:palette
+            name: Lichtscène
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: input_select.mode
+                icon: mdi:tune-variant
+              - type: entity
+                entity: input_boolean.guest_mode
+                icon: mdi:account-supervisor
+              - type: entity
+                entity: input_boolean.vacation_mode
+                icon: mdi:bag-suitcase
+              - type: entity
+                entity: input_boolean.slaap_modus
+                icon: mdi:sleep
+
+      # ---- Snelle verlichting --------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Snelle verlichting
+          - type: custom:mushroom-light-card
+            entity: light.living_room_lights
+            name: Woonkamer
+            use_light_color: true
+            show_brightness_control: true
+            icon: mdi:sofa
+          - type: custom:mushroom-light-card
+            entity: light.kitchen_lights
+            name: Keuken
+            use_light_color: true
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.eetkamer
+            name: Eetkamer
+            use_light_color: true
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.hal
+            name: Hal
+            use_light_color: true
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.kantoor
+            name: Kantoor
+            use_light_color: true
+            show_brightness_control: true
+
+      # ---- Afval & buitencondities ---------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Vandaag
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.afvalinfo_thuis_trash_type_today
+                icon: mdi:trash-can
+              - type: entity
+                entity: sensor.afvalinfo_thuis_trash_type_tomorrow
+                icon: mdi:trash-can-outline
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.sun_next_rising
+                icon: mdi:weather-sunset-up
+              - type: entity
+                entity: sensor.sun_next_setting
+                icon: mdi:weather-sunset-down
+              - type: entity
+                entity: sensor.moon_phase
+                icon: mdi:moon-waning-crescent
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.kleenex_pollen_radar_home_trees_level
+                icon: mdi:tree
+              - type: entity
+                entity: sensor.kleenex_pollen_radar_home_grass_level
+                icon: mdi:grass
+              - type: entity
+                entity: sensor.kleenex_pollen_radar_home_weeds_level
+                icon: mdi:flower-pollen
+
+      # ---- Actieve media --------------------------------------------------
+      - type: custom:auto-entities
+        card:
+          type: custom:stack-in-card
+          card_mod: *cm
+        card_param: cards
+        filter:
+          include:
+            - domain: media_player
+              state: playing
+              options:
+                type: custom:mushroom-media-player-card
+                use_media_info: true
+                media_controls:
+                  - play_pause_stop
+                  - next
+                volume_controls:
+                  - volume_buttons
+          exclude: []
+        sort:
+          method: friendly_name
+        show_empty: false
+
+      # ---- Agenda ---------------------------------------------------------
+      - type: calendar
+        title: Agenda
+        initial_view: listWeek
+        entities:
+          - calendar.persoonlijk
+          - calendar.kyokushin_karate
+          - calendar.afvalinfo_thuis_calendar
+          - calendar.radarr
+
+      # ---- Energie vandaag (grafiek, volle breedte) ----------------------
+      - type: custom:apexcharts-card
+        view_layout:
+          grid-column: 1 / -1
+        card_mod: *cm
+        header:
+          show: true
+          title: Energie vandaag
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        series:
+          - entity: sensor.inverter_total_power
+            transform: 'return x / 1000;'
+            name: Zon
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.electricity_meter_power_consumption
+            name: Import
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.electricity_meter_power_production
+            name: Export
+            group_by:
+              func: avg
+              duration: 10min
+
+  # ===================================================================
+  #  2 · WONING
+  # ===================================================================
+  - title: Woning
+    path: home
+    icon: mdi:home-variant
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr))
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # ---- Verlichting per ruimte ----------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Beneden
+          - type: custom:mushroom-light-card
+            entity: light.living_room_lights
+            name: Woonkamer
+            use_light_color: true
+            show_brightness_control: true
+            show_color_temp_control: true
+          - type: custom:mushroom-light-card
+            entity: light.kitchen_lights
+            name: Keuken
+            use_light_color: true
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.keuken_boven
+            name: Keuken boven
+            use_light_color: true
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.eetkamer
+            name: Eetkamer
+            use_light_color: true
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.schilderij
+            name: Schilderij
+            use_light_color: true
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.hal
+            name: Hal
+            use_light_color: true
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.downstairs
+            name: Beneden (groep)
+            use_light_color: true
+            show_brightness_control: true
+
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Boven & kantoor
+          - type: custom:mushroom-light-card
+            entity: light.kantoor
+            name: Kantoor
+            use_light_color: true
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.slaapkamer_plafond
+            name: Slaapkamer plafond
+            use_light_color: true
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.slaapkamer_hoek
+            name: Slaapkamer hoek
+            use_light_color: true
+            show_brightness_control: true
+
+      # ---- Buitenverlichting & stekkers ----------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Buiten
+          - type: custom:mushroom-light-card
+            entity: light.buiten_lampen_oprit
+            name: Oprit
+            show_brightness_control: true
+          - type: custom:mushroom-light-card
+            entity: light.buiten_lampen_garage
+            name: Garage
+            show_brightness_control: true
+          - type: custom:mushroom-entity-card
+            entity: switch.buiten_stekker
+            name: Buitenstekker
+            icon: mdi:power-socket-eu
+          - type: custom:mushroom-entity-card
+            entity: switch.kerst_stekker_4
+            name: Kerststekker
+            icon: mdi:string-lights
+
+      # ---- Klimaat & luchtkwaliteit --------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Klimaat & lucht
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.multisensor_6_air_temperature
+                icon: mdi:thermometer
+              - type: entity
+                entity: sensor.multisensor_6_humidity
+                icon: mdi:water-percent
+              - type: entity
+                entity: sensor.multisensor_6_illuminance
+                icon: mdi:brightness-5
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_temperature
+                icon: mdi:thermometer
+              - type: entity
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_humidity
+                icon: mdi:water-percent
+              - type: entity
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_carbon_dioxide
+                icon: mdi:molecule-co2
+              - type: entity
+                entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_pm2_5
+                icon: mdi:blur
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.tempature_sensor_temperature
+                icon: mdi:thermometer
+              - type: entity
+                entity: sensor.tempature_sensor_humidity
+                icon: mdi:water-percent
+              - type: entity
+                entity: sensor.multisensor_6_carbon_dioxide_co2_level
+                icon: mdi:molecule-co2
+
+      # ---- Klimaattrend (grafiek) ----------------------------------------
+      - type: custom:apexcharts-card
+        view_layout:
+          grid-column: 1 / -1
+        card_mod: *cm
+        header:
+          show: true
+          title: Klimaattrend (24u)
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        yaxis:
+          - id: temp
+            decimals: 1
+            apex_config:
+              title:
+                text: °C
+          - id: co2
+            opposite: true
+            apex_config:
+              title:
+                text: ppm
+        series:
+          - entity: sensor.multisensor_6_air_temperature
+            name: Woonkamer
+            yaxis_id: temp
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_temperature
+            name: Slaapkamer
+            yaxis_id: temp
+            group_by:
+              func: avg
+              duration: 15min
+          - entity: sensor.slaapkamer_slaapkamer_luchtkwaliteit_meter_carbon_dioxide
+            name: CO₂
+            yaxis_id: co2
+            group_by:
+              func: avg
+              duration: 15min
+
+      # ---- Stofzuiger ----------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Roombot
+          - type: custom:mushroom-vacuum-card
+            entity: vacuum.roombot
+            icon: mdi:robot-vacuum
+            commands:
+              - start
+              - pause
+              - stop
+              - return_home
+              - locate
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.roombot_battery_level
+                icon: mdi:battery
+              - type: entity
+                entity: binary_sensor.roombot_bin_full
+                icon: mdi:delete-alert
+              - type: entity
+                entity: sensor.roombot_total_missions
+                icon: mdi:counter
+
+      # ---- Media ---------------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Media
+          - type: custom:mushroom-media-player-card
+            entity: media_player.tv_samsung_7_series_55
+            name: TV woonkamer
+            use_media_info: true
+          - type: custom:mushroom-media-player-card
+            entity: media_player.keuken_speaker
+            name: Keuken speaker
+            use_media_info: true
+          - type: custom:mushroom-media-player-card
+            entity: media_player.office_speaker
+            name: Kantoor speaker
+            use_media_info: true
+          - type: custom:mushroom-media-player-card
+            entity: media_player.bedroom
+            name: Slaapkamer
+            use_media_info: true
+
+  # ===================================================================
+  #  3 · ENERGIE
+  # ===================================================================
+  - title: Energie
+    path: energy
+    icon: mdi:lightning-bolt
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr))
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # ---- Energiestroom -------------------------------------------------
+      - type: custom:power-flow-card-plus
+        card_mod: *cm
+        entities:
+          grid:
+            entity:
+              consumption: sensor.electricity_meter_power_consumption
+              production: sensor.electricity_meter_power_production
+            color_circle: true
+            display_state: two_way
+            color_value: true
+            color_icon: true
+          solar:
+            entity: sensor.inverter_total_power
+            color_icon: true
+          home:
+            color_icon: true
+          fossil_fuel_percentage:
+            entity: sensor.co2_signal_grid_fossil_fuel_percentage
+            color_value: false
+            color_icon: true
+            state_type: percentage
+          individual:
+            - entity: sensor.alfen_jk_real_power_sum
+              name: Laadpaal
+              icon: mdi:ev-station
+              color_icon: true
+              calculate_flow_rate: true
+            - entity: sensor.zolder_power_switch_power_2
+              name: Servers
+              icon: mdi:server
+              color_icon: true
+              calculate_flow_rate: true
+            - entity: sensor.meterkast_power_switch_electric_consumption_w
+              name: Netwerk
+              icon: mdi:access-point-network
+              color_icon: true
+            - entity: sensor.kantoor_power_switch_electric_consumption_w_2
+              name: Kantoor
+              icon: mdi:office-building
+              color_icon: true
+
+      # ---- Zon & opbrengst -----------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Zon & opbrengst
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:solar-power
+                content: >
+                  {{ (states('sensor.inverter_voor_energy_today')|float(0) +
+                      states('sensor.inverter_achter_energy_today')|float(0))|round(1) }} kWh
+                icon_color: amber
+              - type: template
+                icon: mdi:calendar-month
+                content: >
+                  {{ (states('sensor.inverter_voor_energy_this_month')|float(0) +
+                      states('sensor.inverter_achter_energy_this_month')|float(0))|round(0) }} kWh
+                icon_color: orange
+              - type: template
+                icon: mdi:cash
+                content: >
+                  €{{ (states('sensor.inverter_voor_income_today')|float(0) +
+                      states('sensor.inverter_achter_income_today')|float(0))|round(2) }}
+                icon_color: green
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.inverter_voor
+                icon: mdi:solar-panel
+              - type: entity
+                entity: sensor.inverter_achter
+                icon: mdi:solar-panel-large
+              - type: entity
+                entity: sensor.electricity_meter_active_tariff
+                icon: mdi:transmission-tower
+
+      # ---- Meterstanden --------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Meterstanden
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.electricity_meter_energy_consumption_tarif_1
+                icon: mdi:weather-night
+              - type: entity
+                entity: sensor.electricity_meter_energy_consumption_tarif_2
+                icon: mdi:weather-sunny
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.electricity_meter_energy_production_tarif_1
+                icon: mdi:transmission-tower-export
+              - type: entity
+                entity: sensor.electricity_meter_energy_production_tarif_2
+                icon: mdi:transmission-tower-export
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.gas_meter_gas_consumption
+                icon: mdi:fire
+              - type: entity
+                entity: sensor.dsmr_gas_used
+                icon: mdi:meter-gas
+
+      # ---- Thuisbatterij -------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Thuisbatterij
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:battery-charging
+                content: >
+                  {{ (states('sensor.zolder_inverter_voor_battery_charge_today')|float(0) +
+                      states('sensor.zolder_inverter_achter_battery_charge_today')|float(0))|round(1) }} kWh in
+                icon_color: green
+              - type: template
+                icon: mdi:battery-arrow-down
+                content: >
+                  {{ (states('sensor.zolder_inverter_voor_battery_discharge_today')|float(0) +
+                      states('sensor.zolder_inverter_achter_battery_discharge_today')|float(0))|round(1) }} kWh uit
+                icon_color: orange
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.inverter_voor_battery_voltage
+                icon: mdi:flash
+              - type: entity
+                entity: sensor.inverter_achter_battery_voltage
+                icon: mdi:flash
+
+      # ---- Netkwaliteit --------------------------------------------------
+      - type: entities
+        title: Netkwaliteit
+        card_mod: *cm
+        view_layout:
+          grid-column: 1 / -1
+        columns: 3
+        entities:
+          - entity: sensor.electricity_meter_voltage_phase_l1
+            name: Spanning L1
+          - entity: sensor.electricity_meter_voltage_phase_l2
+            name: Spanning L2
+          - entity: sensor.electricity_meter_voltage_phase_l3
+            name: Spanning L3
+          - entity: sensor.electricity_meter_current_phase_l1
+            name: Stroom L1
+          - entity: sensor.electricity_meter_current_phase_l2
+            name: Stroom L2
+          - entity: sensor.electricity_meter_current_phase_l3
+            name: Stroom L3
+          - entity: sensor.electricity_meter_short_power_failure_count
+            name: Korte storingen
+          - entity: sensor.electricity_meter_long_power_failure_count
+            name: Lange storingen
+          - entity: sensor.co2_signal_co2_intensity
+            name: CO₂-intensiteit net
+
+      # ---- Laadpaal (Alfen) ----------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Laadpaal
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.alfen_jk_car_connected
+                icon: mdi:ev-plug-type2
+              - type: entity
+                entity: sensor.alfen_jk_car_charging
+                icon: mdi:battery-charging
+              - type: entity
+                entity: sensor.alfen_jk_real_power_sum
+                icon: mdi:flash
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.alfen_jk_current_session_wh
+                icon: mdi:counter
+              - type: entity
+                entity: sensor.alfen_jk_current_session_duration
+                icon: mdi:timer
+              - type: entity
+                entity: sensor.alfen_jk_board_temperature
+                icon: mdi:thermometer
+          - type: custom:mushroom-number-card
+            entity: number.alfen_jk_max_current_limit_s1
+            name: Max. laadstroom
+            icon: mdi:current-ac
+          - type: custom:mushroom-select-card
+            entity: select.alfen_jk_usable_phases1
+            name: Fasegebruik
+            icon: mdi:sine-wave
+
+      # ---- Grafiek: energie 24u ------------------------------------------
+      - type: custom:apexcharts-card
+        view_layout:
+          grid-column: 1 / -1
+        card_mod: *cm
+        header:
+          show: true
+          title: Vermogen (24u)
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        series:
+          - entity: sensor.inverter_total_power
+            transform: 'return x / 1000;'
+            name: Zon
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.electricity_meter_power_consumption
+            name: Import
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.electricity_meter_power_production
+            name: Export
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.alfen_jk_real_power_sum
+            transform: 'return x / 1000;'
+            name: Laadpaal
+            group_by:
+              func: avg
+              duration: 10min
+
+  # ===================================================================
+  #  4 · AUTO — Peugeot 508 SW (PHEV)
+  # ===================================================================
+  - title: Auto
+    path: car
+    icon: mdi:car-sports
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr))
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # ---- Status --------------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Peugeot 508 SW
+            subtitle: Status
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:battery-high
+                content: '{{ states("sensor.oprit_508_sw_battery") }}%'
+                icon_color: >
+                  {% if states('sensor.oprit_508_sw_battery')|int(0) > 50 %}green{% else %}amber{% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.oprit_508_sw_battery
+              - type: entity
+                entity: sensor.oprit_508_sw_autonomy
+                icon: mdi:map-marker-distance
+              - type: entity
+                entity: sensor.oprit_508_sw_fuel
+                icon: mdi:gas-station
+              - type: entity
+                entity: sensor.oprit_508_sw_fuel_autonomy
+                icon: mdi:map-marker-path
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: binary_sensor.oprit_508_sw_doors
+                icon: mdi:car-door
+              - type: entity
+                entity: binary_sensor.oprit_508_sw_battery_plugged
+                icon: mdi:ev-plug-type2
+              - type: entity
+                entity: binary_sensor.oprit_508_sw_battery_charging
+                icon: mdi:battery-charging
+              - type: entity
+                entity: binary_sensor.oprit_508_sw_preconditioning
+                icon: mdi:air-conditioner
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.oprit_508_sw_mileage
+                icon: mdi:counter
+              - type: entity
+                entity: sensor.oprit_508_sw_temperature
+                icon: mdi:thermometer
+              - type: entity
+                entity: sensor.oprit_508_sw_command_status
+                icon: mdi:information-outline
+
+      # ---- Bediening -----------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Bediening
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - name: Vergrendel
+                  - icon: mdi:car-door-lock
+                  - color: green
+                  - entity: button.oprit_508_sw_doors_lock
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - name: Ontgrendel
+                  - icon: mdi:car-door
+                  - color: red
+                  - entity: button.oprit_508_sw_doors_unlock
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - name: Wakker
+                  - icon: mdi:car-connected
+                  - color: blue
+                  - entity: button.oprit_508_sw_wakeup
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - name: Laden start
+                  - icon: mdi:play
+                  - color: green
+                  - entity: button.oprit_508_sw_charge_start
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - name: Laden stop
+                  - icon: mdi:stop
+                  - color: red
+                  - entity: button.oprit_508_sw_charge_stop
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - name: Voorklim.
+                  - icon: mdi:air-conditioner
+                  - color: blue
+                  - entity: button.oprit_508_sw_preconditioning_start
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - name: Klim. stop
+                  - icon: mdi:hvac-off
+                  - color: grey
+                  - entity: button.oprit_508_sw_preconditioning_stop
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - name: Claxon
+                  - icon: mdi:bugle
+                  - color: amber
+                  - entity: button.oprit_508_sw_horn
+              - type: custom:decluttering-card
+                template: command_button
+                variables:
+                  - name: Lichten
+                  - icon: mdi:car-light-high
+                  - color: amber
+                  - entity: button.oprit_508_sw_lights
+
+      # ---- Rit & motor ---------------------------------------------------
+      - type: entities
+        title: Rit & motor
+        card_mod: *cm
+        entities:
+          - entity: sensor.oprit_508_sw_last_trip
+            name: Laatste rit
+          - entity: sensor.oprit_508_sw_speed
+            name: Snelheid
+          - entity: sensor.oprit_508_sw_fuel_consumption_instant
+            name: Verbruik nu
+          - entity: sensor.oprit_508_sw_fuel_consumption_total
+            name: Verbruik totaal
+          - entity: sensor.oprit_508_sw_coolant_temperature
+            name: Koelvloeistof
+          - entity: sensor.oprit_508_sw_oil_temperature
+            name: Olie
+          - entity: sensor.oprit_508_sw_air_temperature
+            name: Buitentemp.
+          - entity: sensor.oprit_508_sw_service_battery
+            name: Startaccu
+
+      # ---- Accugezondheid & laden ----------------------------------------
+      - type: entities
+        title: Accu & laden
+        card_mod: *cm
+        entities:
+          - entity: sensor.oprit_508_sw_battery_soh_capacity
+            name: SoH capaciteit
+          - entity: sensor.oprit_508_sw_battery_soh_resistance
+            name: SoH weerstand
+          - entity: sensor.oprit_508_sw_battery_charging_rate
+            name: Laadsnelheid
+          - entity: sensor.oprit_508_sw_battery_charging_type
+            name: Laadtype
+          - entity: sensor.oprit_508_sw_battery_charging_end
+            name: Klaar om
+          - entity: sensor.oprit_508_sw_last_charge
+            name: Laatste laadbeurt
+          - entity: number.oprit_508_sw_battery_charging_limit
+            name: Laadlimiet
+          - entity: switch.oprit_508_sw_battery_charging_limit
+            name: Laadlimiet actief
+          - entity: time.oprit_508_sw_battery_charging_start
+            name: Laadstarttijd
+          - entity: switch.oprit_508_sw_abrp_sync
+            name: ABRP-sync
+          - entity: number.oprit_508_sw_refresh_data_interval
+            name: Verversinterval
+
+      # ---- Locatie -------------------------------------------------------
+      - type: map
+        title: Locatie
+        card_mod: *cm
+        view_layout:
+          grid-column: 1 / -1
+        default_zoom: 12
+        entities:
+          - device_tracker.oprit_508_sw_vehicle
+          - person.eduward_post
+
+      # ---- Live laden (conditioneel) -------------------------------------
+      - type: conditional
+        conditions:
+          - entity: binary_sensor.oprit_508_sw_battery_plugged
+            state: 'on'
+        card:
+          type: custom:apexcharts-card
+          view_layout:
+            grid-column: 1 / -1
+          card_mod: *cm
+          header:
+            show: true
+            title: Laden nu
+            show_states: true
+            colorize_states: true
+          graph_span: 3h
+          series:
+            - entity: sensor.alfen_jk_real_power_sum
+              transform: 'return x / 1000;'
+              name: Laadvermogen
+              group_by:
+                func: avg
+                duration: 5min
+
+  # ===================================================================
+  #  5 · BEVEILIGING
+  # ===================================================================
+  - title: Beveiliging
+    path: security
+    icon: mdi:shield-home
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr))
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # ---- Alarm & sloten ------------------------------------------------
+      - type: alarm-panel
+        card_mod: *cm
+        states:
+          - arm_home
+          - arm_away
+          - arm_night
+        entity: alarm_control_panel.alarm
+
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Deelalarmen & slot
+          - type: custom:mushroom-alarm-control-panel-card
+            entity: alarm_control_panel.beneden
+            name: Beneden
+            states:
+              - armed_home
+              - armed_away
+          - type: custom:mushroom-alarm-control-panel-card
+            entity: alarm_control_panel.boven
+            name: Boven
+            states:
+              - armed_home
+              - armed_away
+          - type: custom:mushroom-lock-card
+            entity: lock.elite
+            name: Voordeurslot
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.elite_temperature
+                icon: mdi:thermometer
+              - type: entity
+                entity: binary_sensor.elite_battery
+                icon: mdi:battery
+
+      # ---- Camera's ------------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        view_layout:
+          grid-column: 1 / -1
+        cards:
+          - type: custom:mushroom-title-card
+            title: Camera's
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: picture-entity
+                entity: camera.voordeur_voordeur
+                name: Voordeur
+                camera_view: auto
+                show_state: false
+              - type: picture-entity
+                entity: camera.voortuin_voortuin
+                name: Voortuin
+                camera_view: auto
+                show_state: false
+              - type: picture-entity
+                entity: camera.achtertuin_achtertuin
+                name: Achtertuin
+                camera_view: auto
+                show_state: false
+              - type: picture-entity
+                entity: camera.oprit_oprit
+                name: Oprit
+                camera_view: auto
+                show_state: false
+              - type: picture-entity
+                entity: camera.garage_garage
+                name: Garage
+                camera_view: auto
+                show_state: false
+              - type: picture-entity
+                entity: camera.front_door
+                name: Deurbel
+                camera_view: auto
+                show_state: false
+
+      # ---- Deuren & beweging ---------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Deuren & beweging
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: binary_sensor.frontdoor_open
+                icon: mdi:door
+              - type: entity
+                entity: binary_sensor.front_door_motion
+                icon: mdi:motion-sensor
+              - type: entity
+                entity: binary_sensor.front_door_ding
+                icon: mdi:bell-ring
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: binary_sensor.back_yard_motion_sensor_motion_detection
+                icon: mdi:motion-sensor
+              - type: entity
+                entity: binary_sensor.multisensor_6_motion_detection
+                icon: mdi:motion-sensor
+              - type: entity
+                entity: binary_sensor.slaapkamer_beweging_occupancy
+                icon: mdi:motion-sensor
+
+      # ---- Deurbel (Ring) ------------------------------------------------
+      - type: entities
+        title: Deurbel
+        card_mod: *cm
+        entities:
+          - entity: sensor.front_door_battery
+            name: Batterij
+          - entity: sensor.front_door_last_motion
+            name: Laatste beweging
+          - entity: sensor.front_door_last_ding
+            name: Laatste bel
+          - entity: switch.front_door_motion_detection
+            name: Bewegingsdetectie
+          - entity: switch.front_door_in_home_chime
+            name: Binnengong
+
+      # ---- SIEM / Wazuh --------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Beveiligingsmonitoring
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:shield-check
+                content: '{{ states("sensor.siem_security_score") }}'
+                icon_color: >
+                  {% if states('sensor.siem_security_score')|int(0) > 80 %}green
+                  {% elif states('sensor.siem_security_score')|int(0) > 50 %}amber
+                  {% else %}red{% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.siem_security_score
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:alert-octagon
+                content: 'Kritiek {{ states("sensor.wazuh_critical_24h") }}'
+                icon_color: red
+              - type: template
+                icon: mdi:alert
+                content: 'Hoog {{ states("sensor.wazuh_high_24h") }}'
+                icon_color: deep-orange
+              - type: template
+                icon: mdi:alert-outline
+                content: 'Middel {{ states("sensor.wazuh_medium_24h") }}'
+                icon_color: amber
+              - type: template
+                icon: mdi:information
+                content: 'Laag {{ states("sensor.wazuh_low_24h") }}'
+                icon_color: blue
+          - type: markdown
+            content: >
+              **Top-regel (24u):** {{ states('sensor.wazuh_top_rule_24h') }}
+
+
+              **Top-bron IP:** {{ states('sensor.wazuh_top_wan_local_source_ip_24h') }}
+
+      # ---- Dreigingstrend (grafiek) --------------------------------------
+      - type: custom:apexcharts-card
+        view_layout:
+          grid-column: 1 / -1
+        card_mod: *cm
+        header:
+          show: true
+          title: Dreigingstrend (7d)
+          show_states: true
+          colorize_states: true
+        graph_span: 7d
+        span:
+          end: day
+        series:
+          - entity: sensor.wazuh_critical_24h
+            name: Kritiek
+            type: column
+            group_by:
+              func: max
+              duration: 1d
+          - entity: sensor.wazuh_high_24h
+            name: Hoog
+            type: column
+            group_by:
+              func: max
+              duration: 1d
+          - entity: sensor.wazuh_medium_24h
+            name: Middel
+            type: column
+            group_by:
+              func: max
+              duration: 1d
+          - entity: sensor.wazuh_low_24h
+            name: Laag
+            type: column
+            group_by:
+              func: max
+              duration: 1d
+
+      # ---- Logboek -------------------------------------------------------
+      - type: logbook
+        title: Recente gebeurtenissen (24u)
+        card_mod: *cm
+        view_layout:
+          grid-column: 1 / -1
+        hours_to_show: 24
+        entities:
+          - alarm_control_panel.alarm
+          - lock.elite
+          - binary_sensor.frontdoor_open
+          - binary_sensor.front_door_motion
+          - binary_sensor.back_yard_motion_sensor_motion_detection
+
+  # ===================================================================
+  #  6 · HOMELAB
+  # ===================================================================
+  - title: Homelab
+    path: homelab
+    icon: mdi:server-network
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr))
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # ---- Diensten (Uptime Kuma) ----------------------------------------
+      - type: custom:auto-entities
+        card:
+          type: entities
+          title: Diensten
+          card_mod: *cm
+        card_param: entities
+        filter:
+          include:
+            - entity_id: sensor.home_assistant_status
+            - entity_id: sensor.plex_status
+            - entity_id: sensor.sonarr_status
+            - entity_id: sensor.radarr_status
+            - entity_id: sensor.unifi_controller_status
+            - entity_id: sensor.internet_access_status
+            - entity_id: sensor.ad_guard_status
+            - entity_id: sensor.prometheus_status
+            - entity_id: sensor.loki_status
+            - entity_id: sensor.jaeger_status
+            - entity_id: sensor.postgres_status
+            - entity_id: sensor.monitoring_status
+            - entity_id: sensor.uptime_kuma_status
+        sort:
+          method: state
+
+      # ---- Kubernetes ----------------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Kubernetes
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:heart-pulse
+                content: >
+                  {{ 'Gezond' if is_state('binary_sensor.homelab_cluster_health','on') else 'Probleem' }}
+                icon_color: >
+                  {{ 'green' if is_state('binary_sensor.homelab_cluster_health','on') else 'red' }}
+                tap_action:
+                  action: more-info
+                  entity: binary_sensor.homelab_cluster_health
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.homelab_nodes_count
+                icon: mdi:server
+              - type: entity
+                entity: sensor.homelab_pods_count
+                icon: mdi:cube-outline
+              - type: entity
+                entity: sensor.homelab_deployments_count
+                icon: mdi:rocket-launch
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.homelab_statefulsets_count
+                icon: mdi:database
+              - type: entity
+                entity: sensor.homelab_daemonsets_count
+                icon: mdi:animation
+              - type: entity
+                entity: sensor.homelab_ingresses_count
+                icon: mdi:network-outline
+
+      # ---- Proxmox -------------------------------------------------------
+      - type: entities
+        title: Proxmox (scarif)
+        card_mod: *cm
+        entities:
+          - entity: sensor.node_scarif_cpu_used
+            name: CPU
+          - entity: sensor.node_scarif_memory_used_percentage
+            name: Geheugen
+          - entity: sensor.node_scarif_disk_used_percentage
+            name: Schijf
+          - entity: sensor.node_scarif_virtual_machines_running
+            name: VM's actief
+          - entity: sensor.node_scarif_containers_running
+            name: Containers actief
+          - entity: sensor.node_scarif_total_updates
+            name: Updates
+          - entity: sensor.node_scarif_last_boot
+            name: Laatste boot
+
+      # ---- Synology NAS --------------------------------------------------
+      - type: entities
+        title: Synology NAS
+        card_mod: *cm
+        entities:
+          - entity: sensor.synology_cpu_utilization_total
+            name: CPU
+          - entity: sensor.synology_memory_usage_real
+            name: Geheugen
+          - entity: sensor.synology_volume_1_used_space
+            name: Volume 1
+          - entity: sensor.synology_volume_1_average_disk_temp
+            name: Schijftemp.
+          - entity: sensor.synology_temperature
+            name: Systeemtemp.
+          - entity: binary_sensor.synology_security_status
+            name: Beveiligingsstatus
+
+      # ---- DNS (Technitium) ----------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: DNS (Technitium)
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.technitium_epost_home_arpa_technitiumdns_total_queries_technitium_epost_home_arpa
+                icon: mdi:dns
+              - type: entity
+                entity: sensor.technitium_epost_home_arpa_technitiumdns_blocked_queries_technitium_epost_home_arpa
+                icon: mdi:cancel
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.technitium_epost_home_arpa_technitiumdns_cached_entries_technitium_epost_home_arpa
+                icon: mdi:database
+              - type: entity
+                entity: sensor.technitium_epost_home_arpa_technitiumdns_clients_technitium_epost_home_arpa
+                icon: mdi:account-network
+
+      # ---- Netwerk (UniFi) -----------------------------------------------
+      - type: entities
+        title: Netwerk (UniFi)
+        card_mod: *cm
+        entities:
+          - entity: sensor.us_24_poe_250w_cpu_utilization
+            name: US-24-PoE CPU
+          - entity: sensor.us_24_poe_250w_temperature
+            name: US-24-PoE temp.
+          - entity: sensor.garage_cpu_utilization
+            name: Garage-switch CPU
+          - entity: sensor.zolder_cpu_utilization
+            name: Zolder-switch CPU
+          - entity: sensor.beneden_cpu_utilization
+            name: Beneden-switch CPU
+          - entity: sensor.boven_cpu_utilization
+            name: Boven-switch CPU
+
+      # ---- Internetsnelheid ----------------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Internet
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.speedtest_download
+                icon: mdi:download
+              - type: entity
+                entity: sensor.speedtest_upload
+                icon: mdi:upload
+              - type: entity
+                entity: sensor.speedtest_ping
+                icon: mdi:timer
+          - type: custom:mushroom-entity-card
+            entity: input_button.run_speedtest
+            name: Nieuwe test
+            icon: mdi:play-speed
+            tap_action:
+              action: call-service
+              service: input_button.press
+              target:
+                entity_id: input_button.run_speedtest
+
+      # ---- Grafiek: internetsnelheid -------------------------------------
+      - type: custom:apexcharts-card
+        view_layout:
+          grid-column: 1 / -1
+        card_mod: *cm
+        header:
+          show: true
+          title: Internetsnelheid (7d)
+          show_states: true
+          colorize_states: true
+        graph_span: 7d
+        series:
+          - entity: sensor.speedtest_download
+            name: Download
+            group_by:
+              func: avg
+              duration: 1h
+          - entity: sensor.speedtest_upload
+            name: Upload
+            group_by:
+              func: avg
+              duration: 1h
+
+  # ===================================================================
+  #  7 · GEZONDHEID (Garmin)
+  # ===================================================================
+  - title: Gezondheid
+    path: health
+    icon: mdi:heart-pulse
+    type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr))
+      grid-auto-rows: min-content
+      grid-gap: 12px
+      margin: 0
+    cards:
+      # ---- Dagelijkse activiteit -----------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Vandaag
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:shoe-print
+                content: >
+                  {{ states('sensor.total_steps') }} / {{ states('sensor.daily_step_goal') }}
+                icon_color: >
+                  {% if states('sensor.total_steps')|int(0) >= states('sensor.daily_step_goal')|int(1) %}green{% else %}blue{% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.total_steps
+              - type: entity
+                entity: sensor.garmin_connect_intensity_minutes
+                icon: mdi:run-fast
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.active_kilocalories
+                icon: mdi:fire
+              - type: entity
+                entity: sensor.total_kilocalories
+                icon: mdi:fire-circle
+              - type: entity
+                entity: sensor.floors_ascended
+                icon: mdi:stairs-up
+
+      # ---- Training & herstel --------------------------------------------
+      - type: entities
+        title: Training & herstel
+        card_mod: *cm
+        entities:
+          - entity: sensor.garmin_connect_training_readiness
+            name: Trainingsgereedheid
+          - entity: sensor.garmin_connect_training_status
+            name: Trainingsstatus
+          - entity: sensor.garmin_connect_recovery_time
+            name: Hersteltijd
+          - entity: sensor.garmin_connect_vo2_max
+            name: VO₂ max
+          - entity: sensor.garmin_connect_fitness_age
+            name: Fitheidsleeftijd
+
+      # ---- HRV & hartslag ------------------------------------------------
+      - type: entities
+        title: HRV & hartslag
+        card_mod: *cm
+        entities:
+          - entity: sensor.hrv_status
+            name: HRV-status
+          - entity: sensor.garmin_connect_hrv_last_night_average
+            name: HRV afgelopen nacht
+          - entity: sensor.garmin_connect_hrv_weekly_average
+            name: HRV weekgemiddelde
+          - entity: sensor.garmin_connect_hrv_baseline
+            name: HRV-basislijn
+          - entity: sensor.resting_heart_rate
+            name: Rusthartslag
+          - entity: sensor.max_heart_rate
+            name: Max. hartslag
+
+      # ---- Body Battery & stress -----------------------------------------
+      - type: custom:stack-in-card
+        card_mod: *cm
+        cards:
+          - type: custom:mushroom-title-card
+            title: Body Battery & stress
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:battery-heart-variant
+                content: '{{ states("sensor.body_battery_most_recent") }}'
+                icon_color: >
+                  {% if states('sensor.body_battery_most_recent')|int(0) > 50 %}green{% else %}amber{% endif %}
+                tap_action:
+                  action: more-info
+                  entity: sensor.body_battery_most_recent
+              - type: entity
+                entity: sensor.body_battery_highest
+                icon: mdi:arrow-up-bold
+              - type: entity
+                entity: sensor.body_battery_lowest
+                icon: mdi:arrow-down-bold
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: entity
+                entity: sensor.avg_stress_level
+                icon: mdi:emoticon-neutral
+              - type: entity
+                entity: sensor.average_spo2
+                icon: mdi:lungs
+
+      # ---- Slaap vannacht ------------------------------------------------
+      - type: entities
+        title: Slaap vannacht
+        card_mod: *cm
+        entities:
+          - entity: sensor.sleep_score
+            name: Slaapscore
+          - entity: sensor.total_sleep_duration
+            name: Totale slaap
+          - entity: sensor.garmin_connect_deep_sleep
+            name: Diepe slaap
+          - entity: sensor.garmin_connect_light_sleep
+            name: Lichte slaap
+          - entity: sensor.garmin_connect_rem_sleep
+            name: REM-slaap
+          - entity: sensor.garmin_connect_awake_time
+            name: Wakker
+          - entity: sensor.garmin_connect_bedtime
+            name: Bedtijd
+          - entity: sensor.garmin_connect_wake_time
+            name: Wektijd
+
+      # ---- Lichaamssamenstelling -----------------------------------------
+      - type: entities
+        title: Lichaamssamenstelling
+        card_mod: *cm
+        entities:
+          - entity: sensor.garmin_connect_weight
+            name: Gewicht
+          - entity: sensor.bmi
+            name: BMI
+          - entity: sensor.body_fat
+            name: Vetpercentage
+          - entity: sensor.muscle_mass
+            name: Spiermassa
+          - entity: sensor.body_water
+            name: Lichaamswater
+          - entity: sensor.bone_mass
+            name: Botmassa
+          - entity: sensor.visceral_fat
+            name: Visceraal vet
+          - entity: sensor.metabolic_age
+            name: Metabole leeftijd
+          - entity: sensor.physique_rating
+            name: Lichaamsbouw
+
+      # ---- Grafiek: stappen (7d) -----------------------------------------
+      - type: custom:apexcharts-card
+        view_layout:
+          grid-column: 1 / -1
+        card_mod: *cm
+        header:
+          show: true
+          title: Stappen (7d)
+          show_states: true
+          colorize_states: true
+        graph_span: 7d
+        span:
+          end: day
+        series:
+          - entity: sensor.total_steps
+            name: Stappen
+            type: column
+            group_by:
+              func: max
+              duration: 1d
+
+      # ---- Grafiek: gewicht (30d) ----------------------------------------
+      - type: custom:apexcharts-card
+        view_layout:
+          grid-column: 1 / -1
+        card_mod: *cm
+        header:
+          show: true
+          title: Gewicht (30d)
+          show_states: true
+          colorize_states: true
+        graph_span: 30d
+        series:
+          - entity: sensor.garmin_connect_weight
+            name: Gewicht
+            group_by:
+              func: avg
+              duration: 1d
