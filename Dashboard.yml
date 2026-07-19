@@ -305,12 +305,11 @@ views:
           exclude: []
         sort:
           method: friendly_name
-        show_empty: false
+        show_empty: true
 
       # ---- Agenda ---------------------------------------------------------
-      - type: calendar
+      - type: custom:calendar-card-pro
         title: Agenda
-        initial_view: listWeek
         entities:
           - calendar.persoonlijk
           - calendar.kyokushin_karate
@@ -726,6 +725,23 @@ views:
               icon: mdi:access-point-network
               color_icon: true
               calculate_flow_rate: true
+        clickable_entities: true
+        display_zero_lines:
+          mode: show
+          transparency: 50
+          grey_color:
+            - 189
+            - 189
+            - 189
+        use_new_flow_rate_model: true
+        w_decimals: 0
+        kw_decimals: 1
+        min_flow_rate: 0.75
+        max_flow_rate: 6
+        max_expected_power: 3000
+        min_expected_power: 0.01
+        watt_threshold: 1000
+        transparency_zero_lines: 0
 
       # ---- Zon & opbrengst (tegels) --------------------------------------
       - type: custom:stack-in-card
