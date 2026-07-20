@@ -685,7 +685,7 @@ views:
     type: custom:layout-card
     layout_type: custom:grid-layout
     layout:
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr))
+      grid-template-columns: repeat(4, 1fr)
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
@@ -694,6 +694,9 @@ views:
       # ---- Energiestroom (verdeling) — fossil% verwijderd zodat de vier
       #      verbruikers (Laadpaal/Kantoor/Servers/Netwerk) blijven passen.
       - type: custom:power-flow-card-plus
+        title: Huidig verbruik
+        view_layout:
+          grid-column: 1 / 3
         card_mod: *cm
         entities:
           grid:
@@ -750,6 +753,8 @@ views:
 
       # ---- Zon & opbrengst (tegels) --------------------------------------
       - type: custom:stack-in-card
+        view_layout:
+          grid-column: 3 / 4
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
@@ -798,6 +803,8 @@ views:
       # ---- Meterstanden (nette lijst) ------------------------------------
       - type: entities
         title: Meterstanden
+        view_layout:
+          grid-column: 4 / 5
         card_mod: *cm
         entities:
           - entity: sensor.electricity_meter_energy_consumption_tarif_1
@@ -812,11 +819,11 @@ views:
             name: Actief tarief
           - entity: sensor.gas_meter_gas_consumption
             name: Gas totaal
-          - entity: sensor.dsmr_gas_used
-            name: Gas (DSMR)
 
       # ---- Laadpaal (Alfen) ----------------------------------------------
       - type: custom:stack-in-card
+        view_layout:
+          grid-column: 1 / 3
         card_mod: *cm
         cards:
           - type: custom:mushroom-title-card
@@ -861,6 +868,8 @@ views:
       # ---- Netkwaliteit --------------------------------------------------
       - type: entities
         title: Netkwaliteit
+        view_layout:
+          grid-column: 3 / 5
         card_mod: *cm
         entities:
           - entity: sensor.electricity_meter_voltage_phase_l1
