@@ -47,7 +47,6 @@ views:
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
-      align-items: stretch
     cards:
       # ---- Statusbalk (volledige breedte, enige chip-rij) ----------------
       - type: custom:mushroom-chips-card
@@ -135,8 +134,6 @@ views:
               border-radius: var(--ha-card-border-radius, 18px);
               border: 1px solid var(--divider-color);
               box-shadow: none;
-              height: 100%;
-              box-sizing: border-box;
             }
         cards:
           - type: custom:mushroom-title-card
@@ -361,7 +358,6 @@ views:
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
-      align-items: stretch
     cards:
       # ---- Woonkamer -----------------------------------------------------
       - type: custom:stack-in-card
@@ -689,7 +685,6 @@ views:
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
-      align-items: stretch
     cards:
       # ---- Energiestroom (verdeling) — fossil% verwijderd zodat de vier
       #      verbruikers (Laadpaal/Kantoor/Servers/Netwerk) blijven passen.
@@ -930,7 +925,6 @@ views:
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
-      align-items: stretch
     cards:
       # ---- Accu & brandstof — snelle balken (%, met actieradius km) ------
       - type: custom:stack-in-card
@@ -1077,10 +1071,18 @@ views:
         entities:
           - entity: sensor.oprit_508_sw_last_trip
             name: Laatste rit
+          - entity: sensor.oprit_508_sw_speed
+            name: Snelheid
+          - entity: sensor.oprit_508_sw_fuel_consumption_instant
+            name: Verbruik nu
+          - entity: sensor.oprit_508_sw_fuel_consumption_total
+            name: Verbruik totaal
           - entity: sensor.oprit_508_sw_coolant_temperature
             name: Koelvloeistof
           - entity: sensor.oprit_508_sw_oil_temperature
             name: Olie
+          - entity: sensor.oprit_508_sw_air_temperature
+            name: Buitentemp.
           - entity: sensor.oprit_508_sw_service_battery
             name: Startaccu
 
@@ -1089,14 +1091,28 @@ views:
         title: Accu & laden
         card_mod: *cm
         entities:
+          - entity: sensor.oprit_508_sw_battery_soh_capacity
+            name: SoH capaciteit
+          - entity: sensor.oprit_508_sw_battery_soh_resistance
+            name: SoH weerstand
           - entity: sensor.oprit_508_sw_battery_charging_rate
             name: Laadsnelheid
+          - entity: sensor.oprit_508_sw_battery_charging_type
+            name: Laadtype
           - entity: sensor.oprit_508_sw_battery_charging_end
             name: Klaar om
           - entity: sensor.oprit_508_sw_last_charge
             name: Laatste laadbeurt
+          - entity: number.oprit_508_sw_battery_charging_limit
+            name: Laadlimiet
           - entity: switch.oprit_508_sw_battery_charging_limit
             name: Laadlimiet actief
+          - entity: time.oprit_508_sw_battery_charging_start
+            name: Laadstarttijd
+          - entity: switch.oprit_508_sw_abrp_sync
+            name: ABRP-sync
+          - entity: number.oprit_508_sw_refresh_data_interval
+            name: Verversinterval
 
       # ---- Locatie -------------------------------------------------------
       - type: map
@@ -1146,7 +1162,6 @@ views:
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
-      align-items: stretch
     cards:
       # ---- Status & slot -------------------------------------------------
       - type: custom:stack-in-card
@@ -1184,7 +1199,6 @@ views:
           - type: custom:mushroom-lock-card
             entity: lock.elite
             name: Voordeurslot
-            card_mod: *tile
 
       # ---- Deuren & beweging ---------------------------------------------
       - type: custom:stack-in-card
@@ -1248,6 +1262,49 @@ views:
             name: Bewegingsdetectie
           - entity: switch.front_door_in_home_chime
             name: Binnengong
+
+      # ---- Camera's — titel (volle breedte) ------------------------------
+      - type: custom:mushroom-title-card
+        title: Camera's
+        view_layout:
+          grid-column: 1 / -1
+      # ---- Camera's — losse snapshots ------------------------------------
+      - type: picture-entity
+        entity: camera.voordeur_voordeur
+        name: Voordeur
+        show_state: false
+        camera_view: auto
+        aspect_ratio: '16:9'
+      - type: picture-entity
+        entity: camera.voortuin_voortuin
+        name: Voortuin
+        show_state: false
+        camera_view: auto
+        aspect_ratio: '16:9'
+      - type: picture-entity
+        entity: camera.achtertuin_achtertuin
+        name: Achtertuin
+        show_state: false
+        camera_view: auto
+        aspect_ratio: '16:9'
+      - type: picture-entity
+        entity: camera.oprit_oprit
+        name: Oprit
+        show_state: false
+        camera_view: auto
+        aspect_ratio: '16:9'
+      - type: picture-entity
+        entity: camera.garage_garage
+        name: Garage
+        show_state: false
+        camera_view: auto
+        aspect_ratio: '16:9'
+      - type: picture-entity
+        entity: camera.front_door
+        name: Deurbel
+        show_state: false
+        camera_view: auto
+        aspect_ratio: '16:9'
 
       # ---- SIEM / Wazuh (gekleurde tegels) -------------------------------
       - type: custom:stack-in-card
@@ -1320,51 +1377,6 @@ views:
 
               **Top-bron IP:** {{ states('sensor.wazuh_top_wan_local_source_ip_24h') }}
 
-
-      # ---- Camera's — titel (volle breedte) ------------------------------
-      - type: custom:mushroom-title-card
-        title: Camera's
-        view_layout:
-          grid-column: 1 / -1
-      # ---- Camera's — losse snapshots ------------------------------------
-      - type: picture-entity
-        entity: camera.voordeur_voordeur
-        name: Voordeur
-        show_state: false
-        camera_view: auto
-        aspect_ratio: '16:9'
-      - type: picture-entity
-        entity: camera.voortuin_voortuin
-        name: Voortuin
-        show_state: false
-        camera_view: auto
-        aspect_ratio: '16:9'
-      - type: picture-entity
-        entity: camera.achtertuin_achtertuin
-        name: Achtertuin
-        show_state: false
-        camera_view: auto
-        aspect_ratio: '16:9'
-      - type: picture-entity
-        entity: camera.oprit_oprit
-        name: Oprit
-        show_state: false
-        camera_view: auto
-        aspect_ratio: '16:9'
-      - type: picture-entity
-        entity: camera.garage_garage
-        name: Garage
-        show_state: false
-        camera_view: auto
-        aspect_ratio: '16:9'
-      - type: picture-entity
-        entity: camera.front_door
-        name: Deurbel
-        show_state: false
-        camera_view: auto
-        aspect_ratio: '16:9'
-
-      
       # ---- Dreigingstrend (grafiek) --------------------------------------
       - type: custom:apexcharts-card
         view_layout:
@@ -1431,7 +1443,6 @@ views:
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
-      align-items: stretch
     cards:
       # ---- Diensten — visuele health-grid (groen = up / rood = down) -----
       - type: custom:stack-in-card
@@ -1555,6 +1566,31 @@ views:
                 tap_action:
                   action: more-info
 
+      # ---- Responstijden kritieke diensten -------------------------------
+      - type: entities
+        title: Responstijden
+        card_mod: *cm
+        entities:
+          - entity: sensor.internet_access_response_time
+            name: Internet
+          - entity: sensor.home_assistant_response_time
+            name: Home Assistant
+          - entity: sensor.ad_guard_response_time
+            name: AdGuard
+          - entity: sensor.unifi_controller_response_time
+            name: UniFi
+          - entity: sensor.plex_response_time
+            name: Plex
+          - entity: sensor.sonarr_response_time
+            name: Sonarr
+          - entity: sensor.radarr_response_time
+            name: Radarr
+          - entity: sensor.postgres_response_time
+            name: PostgreSQL
+          - entity: sensor.prometheus_response_time
+            name: Prometheus
+          - entity: sensor.loki_response_time
+            name: Loki
 
       # ---- Responstijden (grafiek) ---------------------------------------
       - type: custom:apexcharts-card
@@ -1803,7 +1839,6 @@ views:
       grid-auto-rows: min-content
       grid-gap: 12px
       margin: 0
-      align-items: stretch
     cards:
       # ---- Vandaag (tegels; stappen bewust minder prominent) -------------
       - type: custom:stack-in-card
@@ -2012,11 +2047,9 @@ views:
               func: avg
               duration: 1d
 
-      # ---- Stappen (7d) — onderaan ---------------
+      # ---- Stappen (7d) — klein, onderaan, niet full-width ---------------
       - type: custom:apexcharts-card
         card_mod: *cm
-        view_layout:
-          grid-column: 1 / -1
         header:
           show: true
           title: Stappen (7d)
