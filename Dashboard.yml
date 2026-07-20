@@ -1114,6 +1114,7 @@ views:
         view_layout:
           grid-column: 1 / -1
         default_zoom: 12
+        hours_to_show: 24
         entities:
           - device_tracker.oprit_508_sw_vehicle
           - person.eduward_post
