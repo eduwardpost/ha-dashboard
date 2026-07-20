@@ -947,44 +947,48 @@ views:
           grid-column: 1 / -1
         card_mod: *cm
         cards:
-          - type: custom:mushroom-template-card
-            primary: Accu
-            secondary: >
-              {{ states('sensor.oprit_508_sw_battery') }}% ·
-              {{ states('sensor.oprit_508_sw_autonomy') }} km actieradius
-            icon: mdi:battery-high
-            icon_color: >
-              {% if states('sensor.oprit_508_sw_battery')|int(0) > 50 %}green
-              {% elif states('sensor.oprit_508_sw_battery')|int(0) > 20 %}amber
-              {% else %}red{% endif %}
-            multiline_secondary: true
-            card_mod:
-              style: |
-                ha-card {
-                  border: none;
-                  background: linear-gradient(to right,
-                    rgba(var(--rgb-green), 0.22) {{ states('sensor.oprit_508_sw_battery')|int(0) }}%,
-                    rgba(var(--rgb-green), 0.0) {{ states('sensor.oprit_508_sw_battery')|int(0) }}%);
-                }
-          - type: custom:mushroom-template-card
-            primary: Brandstof
-            secondary: >
-              {{ states('sensor.oprit_508_sw_fuel') }}% ·
-              {{ states('sensor.oprit_508_sw_fuel_autonomy') }} km actieradius
-            icon: mdi:gas-station
-            icon_color: >
-              {% if states('sensor.oprit_508_sw_fuel')|int(0) > 50 %}green
-              {% elif states('sensor.oprit_508_sw_fuel')|int(0) > 20 %}amber
-              {% else %}red{% endif %}
-            multiline_secondary: true
-            card_mod:
-              style: |
-                ha-card {
-                  border: none;
-                  background: linear-gradient(to right,
-                    rgba(var(--rgb-amber), 0.22) {{ states('sensor.oprit_508_sw_fuel')|int(0) }}%,
-                    rgba(var(--rgb-amber), 0.0) {{ states('sensor.oprit_508_sw_fuel')|int(0) }}%);
-                }
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+            - type: custom:mushroom-template-card
+              primary: Accu
+              secondary: >
+                {{ states('sensor.oprit_508_sw_battery') }}% ·
+                {{ states('sensor.oprit_508_sw_autonomy') }} km actieradius
+              icon: mdi:battery-high
+              icon_color: >
+                {% if states('sensor.oprit_508_sw_battery')|int(0) > 50 %}green
+                {% elif states('sensor.oprit_508_sw_battery')|int(0) > 20 %}amber
+                {% else %}red{% endif %}
+              multiline_secondary: true
+              card_mod:
+                style: |
+                  ha-card {
+                    border: none;
+                    background: linear-gradient(to right,
+                      rgba(var(--rgb-green), 0.22) {{ states('sensor.oprit_508_sw_battery')|int(0) }}%,
+                      rgba(var(--rgb-green), 0.0) {{ states('sensor.oprit_508_sw_battery')|int(0) }}%);
+                  }
+            - type: custom:mushroom-template-card
+              primary: Brandstof
+              secondary: >
+                {{ states('sensor.oprit_508_sw_fuel') }}% ·
+                {{ states('sensor.oprit_508_sw_fuel_autonomy') }} km actieradius
+              icon: mdi:gas-station
+              icon_color: >
+                {% if states('sensor.oprit_508_sw_fuel')|int(0) > 50 %}green
+                {% elif states('sensor.oprit_508_sw_fuel')|int(0) > 20 %}amber
+                {% else %}red{% endif %}
+              multiline_secondary: true
+              card_mod:
+                style: |
+                  ha-card {
+                    border: none;
+                    background: linear-gradient(to right,
+                      rgba(var(--rgb-amber), 0.22) {{ states('sensor.oprit_508_sw_fuel')|int(0) }}%,
+                      rgba(var(--rgb-amber), 0.0) {{ states('sensor.oprit_508_sw_fuel')|int(0) }}%);
+                  }
 
       # ---- Status (tegels) -----------------------------------------------
       - type: custom:stack-in-card
